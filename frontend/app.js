@@ -826,27 +826,53 @@ function renderTreeNode(node) {
 
     if (node.is_dir) {
         item.innerHTML = `
-            <span class="tree-item__chevron tree-item__chevron--open" style="font-size:9px;color:var(--text-dim);margin-right:2px;display:inline-block;transition:transform 0.15s;">▶</span>
+            <span class="tree-item__chevron" style="font-size:9px;color:var(--text-dim);margin-right:2px;display:inline-block;transition:transform 0.15s;">▶</span>
             <span style="font-size:13px;margin-right:4px;">📂</span>
             <span class="tree-item__name" style="color:var(--text-main);font-weight:500;">${escapeHtml(node.name)}</span>
         `;
         
         const childrenContainer = document.createElement('div');
         childrenContainer.className = 'tree-children';
-        childrenContainer.style.cssText = 'margin-left:14px;border-left:1px solid var(--border-subtle);padding-left:2px;';
+        childrenContainer.style.cssText = 'margin-left:14px;border-left:1px solid var(--border-subtle);padding-left:2px;display:none;';
 
+        let isLoaded = false;
         if (node.children && node.children.length > 0) {
             node.children.forEach(child => {
                 childrenContainer.appendChild(renderTreeNode(child));
             });
-        } else {
-            childrenContainer.innerHTML = '<div style="padding:2px 10px;font-size:11px;color:var(--text-dim);">Vazia</div>';
+            isLoaded = true;
         }
 
-        item.addEventListener('click', (e) => {
+        item.addEventListener('click', async (e) => {
             e.stopPropagation();
             const chevron = item.querySelector('.tree-item__chevron');
             const isClosed = childrenContainer.style.display === 'none';
+
+            if (isClosed && (!isLoaded || childrenContainer.children.length === 0)) {
+                childrenContainer.innerHTML = '<div style="padding:2px 10px;font-size:11px;color:var(--text-dim);">Carregando...</div>';
+                childrenContainer.style.display = 'block';
+                if (chevron) chevron.style.transform = 'rotate(90deg)';
+
+                try {
+                    const res = await fetch(`${API_BASE}/fs/tree?path=${encodeURIComponent(node.path)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        childrenContainer.innerHTML = '';
+                        if (data.tree && data.tree.length > 0) {
+                            data.tree.forEach(child => {
+                                childrenContainer.appendChild(renderTreeNode(child));
+                            });
+                            isLoaded = true;
+                        } else {
+                            childrenContainer.innerHTML = '<div style="padding:2px 10px;font-size:11px;color:var(--text-dim);">Pasta vazia</div>';
+                        }
+                    }
+                } catch (err) {
+                    childrenContainer.innerHTML = '<div style="padding:2px 10px;font-size:11px;color:#ef4444;">Erro ao carregar</div>';
+                }
+                return;
+            }
+
             childrenContainer.style.display = isClosed ? 'block' : 'none';
             if (chevron) chevron.style.transform = isClosed ? 'rotate(90deg)' : 'rotate(0deg)';
         });

@@ -457,14 +457,19 @@ async def close_workspace():
     return {"ok": True, "active": ACTIVE_WORKSPACE}
 
 @app.get("/api/fs/tree")
-async def get_file_tree(scope: str = "workspace"):
-    target_dir = Path(ACTIVE_WORKSPACE["path"]) if ACTIVE_WORKSPACE.get("path") else BASE_DIR
+async def get_file_tree(path: Optional[str] = None):
+    if path:
+        target_dir = Path(path)
+    else:
+        target_dir = Path(ACTIVE_WORKSPACE["path"]) if ACTIVE_WORKSPACE.get("path") else BASE_DIR
+
     if not target_dir.exists():
         target_dir = BASE_DIR
+        
     return {
-        "root": ACTIVE_WORKSPACE.get("name", target_dir.name),
+        "root": target_dir.name or str(target_dir),
         "path": str(target_dir).replace("\\", "/"),
-        "tree": get_dir_tree(target_dir)
+        "tree": get_dir_tree(target_dir, depth=0)
     }
 
 @app.get("/api/fs/file")

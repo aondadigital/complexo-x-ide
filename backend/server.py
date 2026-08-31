@@ -412,12 +412,15 @@ ACTIVE_WORKSPACE = {"path": str(BASE_DIR), "name": BASE_DIR.name}
 @app.get("/api/fs/workspaces")
 async def list_recent_workspaces():
     recent = [
-        {"name": "IDE (Oficial)", "path": str(BASE_DIR), "type": "local"},
-        {"name": "workspace (Projetos)", "path": str(PROJECTS_DIR), "type": "workspace"},
-        {"name": "PROJETOS (Raiz)", "path": "D:/PROJETOS" if os.path.exists("D:/PROJETOS") else str(BASE_DIR.parent), "type": "drive"},
-        {"name": "PROJETO MÃE", "path": "D:/PROJETO MÃE" if os.path.exists("D:/PROJETO MÃE") else str(BASE_DIR), "type": "drive"},
-        {"name": "VPS (/opt)", "path": "/opt/complexo-x-ide" if os.path.exists("/opt/complexo-x-ide") else str(BASE_DIR), "type": "vps"}
+        {"name": "IDE (Oficial)", "path": str(BASE_DIR), "type": "local"}
     ]
+    if (BASE_DIR / "workspace").exists():
+        recent.append({"name": "workspace", "path": str(BASE_DIR / "workspace"), "type": "workspace"})
+    if os.path.exists("D:/PROJETOS"):
+        recent.append({"name": "PROJETOS", "path": "D:/PROJETOS", "type": "drive"})
+    if os.path.exists("D:/PROJETO MÃE"):
+        recent.append({"name": "PROJETO MÃE", "path": "D:/PROJETO MÃE", "type": "drive"})
+
     return {
         "active": ACTIVE_WORKSPACE,
         "recent": recent

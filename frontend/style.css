@@ -817,23 +817,24 @@ body {
    RESIZABLE SPLITTERS & HANDLERS (MOUSE DRAG)
    ============================================ */
 .resizer {
-    background: var(--border-subtle);
+    background: rgba(255, 255, 255, 0.08);
     position: relative;
-    z-index: 50;
-    transition: background var(--transition-fast), box-shadow var(--transition-fast);
+    z-index: 100;
     user-select: none;
     flex-shrink: 0;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .resizer:hover, .resizer--dragging {
     background: var(--accent-primary) !important;
-    box-shadow: 0 0 12px var(--accent-primary-glow);
+    box-shadow: 0 0 15px var(--accent-primary-glow);
 }
 
 .resizer--v {
-    width: 6px;
+    width: 8px;
     cursor: col-resize;
     height: 100%;
+    margin: 0 -1px;
 }
 
 .resizer--v::after {
@@ -842,21 +843,23 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 2px;
-    height: 24px;
-    background: var(--text-muted);
-    border-radius: 1px;
-    transition: background var(--transition-fast);
+    width: 3px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 2px;
+    transition: background 0.15s ease, height 0.15s ease;
 }
 
 .resizer--v:hover::after, .resizer--dragging::after {
-    background: white;
+    background: #ffffff;
+    height: 36px;
 }
 
 .resizer--h {
-    height: 6px;
+    height: 8px;
     cursor: row-resize;
     width: 100%;
+    margin: -1px 0;
 }
 
 .resizer--h::after {
@@ -865,20 +868,37 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 24px;
-    height: 2px;
-    background: var(--text-muted);
-    border-radius: 1px;
-    transition: background var(--transition-fast);
+    width: 28px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 2px;
+    transition: background 0.15s ease, width 0.15s ease;
 }
 
 .resizer--h:hover::after, .resizer--dragging::after {
-    background: white;
+    background: #ffffff;
+    width: 36px;
 }
 
-/* Previne seleção de texto ou perda de foco no iframe durante drag */
-body.is-resizing {
-    user-select: none !important;
+/* Fullscreen Drag Overlay to prevent iframe / Monaco event capturing */
+#dragOverlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999;
+    background: transparent;
+    cursor: col-resize;
+}
+body.is-resizing-v #dragOverlay {
+    display: block;
+    cursor: col-resize;
+}
+body.is-resizing-h #dragOverlay {
+    display: block;
+    cursor: row-resize;
 }
 body.is-resizing iframe {
     pointer-events: none !important;

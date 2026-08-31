@@ -422,6 +422,13 @@ async def list_recent_workspaces():
         "recent": recent
     }
 
+class CreateFileRequest(BaseModel):
+    path: str
+    content: str = ""
+
+class CreateFolderRequest(BaseModel):
+    path: str
+
 class SwitchWorkspaceRequest(BaseModel):
     path: str
 

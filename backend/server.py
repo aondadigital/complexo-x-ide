@@ -88,7 +88,7 @@ async def list_templates():
     templates = []
     for model_file in MODELS_DIR.glob("*.json"):
         try:
-            data = json.loads(model_file.read_text(encoding="utf-8"))
+            data = json.loads(model_file.read_text(encoding="utf-8-sig"))
             templates.append(data)
         except Exception:
             pass
@@ -102,7 +102,7 @@ async def list_agents():
         souls[agent_key] = {
             "name": agent_key.capitalize(),
             "file": soul_file.name,
-            "content": soul_file.read_text(encoding="utf-8")
+            "content": soul_file.read_text(encoding="utf-8-sig")
         }
     return {"agents": souls}
 
@@ -345,7 +345,7 @@ async def run_parallel_pipeline(mission: MissionRequest):
     tmpl_file = MODELS_DIR / f"{mission.template_id}.json"
     if tmpl_file.exists():
         try:
-            tmpl_data = json.loads(tmpl_file.read_text(encoding="utf-8"))
+            tmpl_data = json.loads(tmpl_file.read_text(encoding="utf-8-sig"))
         except Exception:
             pass
 
@@ -372,8 +372,8 @@ async def run_parallel_pipeline(mission: MissionRequest):
     # Salva no workspace
     proj_dir = PROJECTS_DIR / (mission.project_id or "default")
     proj_dir.mkdir(parents=True, exist_ok=True)
-    (proj_dir / "index.html").write_text(healed_html, encoding="utf-8")
-    (proj_dir / "style.css").write_text(healed_css, encoding="utf-8")
+    (proj_dir / "index.html").write_text(healed_html, encoding="utf-8-sig")
+    (proj_dir / "style.css").write_text(healed_css, encoding="utf-8-sig")
 
     # 6. Atualiza o Frontend
     await manager.broadcast({

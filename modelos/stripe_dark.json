@@ -1,0 +1,25 @@
+{
+  "id": "stripe_dark",
+  "nome": "Stripe Dark SaaS",
+  "categoria": "saas",
+  "descricao": "Visual escuro ultra-tecnológico com mesh gradientes vibrantes em roxo e ciano, glassmorphism e tipografia Inter.",
+  "cores": {
+    "fundo": "#07080d",
+    "superficie": "#0f1117",
+    "primaria": "#7c3aed",
+    "secundaria": "#06b6d4",
+    "texto": "#e8eaf0",
+    "texto_secundario": "#8b8fa3"
+  },
+  "tipografia": {
+    "familia": "Inter, sans-serif",
+    "h1": "52px",
+    "h2": "36px",
+    "corpo": "15px"
+  },
+  "layout": {
+    "border_radius": "14px",
+    "sombra": "0 0 30px rgba(124, 58, 237, 0.2)",
+    "animacao": "fadeInUp 0.4s ease"
+  }
+}

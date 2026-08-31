@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complexo-X IDE — Sua IDE com Agente-X</title>
+    <meta name="description" content="IDE com equipe de agentes IA, Motor Custo Zero, biblioteca de modelos visuais e deploy automático.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- TOP BAR -->
+    <header class="topbar">
+        <div class="topbar__brand">
+            <div class="topbar__logo">
+                <span class="logo-x">X</span>
+            </div>
+            <span class="topbar__title">COMPLEXO-X <span class="topbar__title--accent">IDE</span></span>
+        </div>
+        <div class="topbar__center">
+            <div class="motor-badge">
+                <span class="motor-badge__dot"></span>
+                <span>Motor: Claude Opus</span>
+                <span class="motor-badge__icon">⚡</span>
+                <span class="motor-badge__label">Custo Zero</span>
+            </div>
+        </div>
+        <div class="topbar__actions">
+            <div class="vps-status" id="vpsStatus">
+                <span class="vps-status__dot"></span>
+                <span>VPS Online</span>
+            </div>
+            <button class="btn btn--deploy" id="btnDeploy">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v10M4 7l4 4 4-4M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Deploy
+            </button>
+            <button class="btn btn--icon" id="btnSettings" title="Configurações">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="1.5"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="app">
+        <!-- LEFT SIDEBAR -->
+        <aside class="sidebar">
+            <nav class="sidebar__nav">
+                <button class="sidebar__btn sidebar__btn--active" data-panel="files" title="Arquivos">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span>Arquivos</span>
+                </button>
+                <button class="sidebar__btn" data-panel="agents" title="Equipe de Agentes">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span>Agentes</span>
+                </button>
+                <button class="sidebar__btn" data-panel="templates" title="Modelos Visuais">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" stroke="currentColor" stroke-width="1.5"/></svg>
+                    <span>Modelos</span>
+                </button>
+                <button class="sidebar__btn" data-panel="terminal" title="Terminal">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><polyline points="4 17 10 11 4 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="19" x2="20" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    <span>Terminal</span>
+                </button>
+                <button class="sidebar__btn" data-panel="deploy" title="Deploy">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span>Deploy</span>
+                </button>
+            </nav>
+            <div class="sidebar__user">
+                <div class="sidebar__avatar">LC</div>
+                <span>Operador</span>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main">
+            <!-- TOP ROW: Editor + Preview -->
+            <div class="main__top">
+                <!-- CODE EDITOR -->
+                <section class="panel panel--editor">
+                    <div class="panel__header">
+                        <div class="tabs">
+                            <button class="tab tab--active" data-file="index.html">
+                                <span class="tab__icon">🌐</span> index.html
+                            </button>
+                            <button class="tab" data-file="style.css">
+                                <span class="tab__icon">🎨</span> style.css
+                            </button>
+                            <button class="tab" data-file="api.py">
+                                <span class="tab__icon">🐍</span> api.py
+                            </button>
+                            <button class="tab tab--add" title="Novo arquivo">+</button>
+                        </div>
+                    </div>
+                    <div class="panel__body" id="editorContainer">
+                        <div id="monacoEditor" class="editor-area"></div>
+                    </div>
+                </section>
+
+                <!-- LIVE PREVIEW -->
+                <section class="panel panel--preview">
+                    <div class="panel__header">
+                        <div class="preview-controls">
+                            <button class="preview-btn" id="btnRefresh" title="Recarregar">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M23 4v6h-6M1 20v-6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
+                            <div class="preview-device-toggle">
+                                <button class="device-btn device-btn--active" data-device="desktop">Desktop</button>
+                                <button class="device-btn" data-device="mobile">Mobile</button>
+                            </div>
+                        </div>
+                        <span class="panel__title">Preview</span>
+                    </div>
+                    <div class="panel__body preview-body">
+                        <iframe id="previewFrame" class="preview-iframe" srcdoc="<html><body style='background:#0f1117;color:#8b8fa3;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif'><p style='text-align:center'>Aguardando construção...<br><small style='opacity:0.5'>Os agentes vão construir aqui</small></p></body></html>"></iframe>
+                    </div>
+                </section>
+            </div>
+
+            <!-- BOTTOM ROW: Chat + Agent Dashboard -->
+            <div class="main__bottom">
+                <!-- CHAT -->
+                <section class="panel panel--chat">
+                    <div class="panel__header">
+                        <span class="panel__title">💬 Chat da Missão</span>
+                        <button class="btn btn--sm" id="btnClearChat">Limpar</button>
+                    </div>
+                    <div class="panel__body chat-body" id="chatMessages">
+                        <div class="chat-welcome">
+                            <div class="chat-welcome__icon">🚀</div>
+                            <h3>Complexo-X IDE</h3>
+                            <p>Descreva o que quer construir. A equipe de agentes vai trabalhar pra você.</p>
+                            <div class="chat-welcome__examples">
+                                <button class="example-btn" onclick="setPrompt(this.textContent)">Cria uma landing page pro meu restaurante</button>
+                                <button class="example-btn" onclick="setPrompt(this.textContent)">Faz um dashboard SaaS estilo Stripe</button>
+                                <button class="example-btn" onclick="setPrompt(this.textContent)">Monta um e-commerce com catálogo e WhatsApp</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <div class="chat-input-wrapper">
+                            <textarea id="chatInput" class="chat-input" placeholder="Descreva o que quer construir..." rows="1"></textarea>
+                            <button class="chat-send" id="btnSend" title="Enviar">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- AGENT DASHBOARD -->
+                <section class="panel panel--agents">
+                    <div class="panel__header">
+                        <span class="panel__title">🤖 Equipe de Agentes</span>
+                        <span class="agents-count" id="agentsCount">0/4 ativos</span>
+                    </div>
+                    <div class="panel__body agents-grid" id="agentsDashboard">
+                        <div class="agent-card" id="agent-gerente">
+                            <div class="agent-card__header">
+                                <span class="agent-card__emoji">🎯</span>
+                                <span class="agent-card__name">Gerente</span>
+                                <span class="agent-card__status agent-card__status--idle">inativo</span>
+                            </div>
+                            <div class="agent-card__progress"><div class="progress-bar" style="width:0%"></div></div>
+                            <p class="agent-card__task">Aguardando missão...</p>
+                        </div>
+                        <div class="agent-card" id="agent-programador">
+                            <div class="agent-card__header">
+                                <span class="agent-card__emoji">👨‍💻</span>
+                                <span class="agent-card__name">Programador</span>
+                                <span class="agent-card__status agent-card__status--idle">inativo</span>
+                            </div>
+                            <div class="agent-card__progress"><div class="progress-bar" style="width:0%"></div></div>
+                            <p class="agent-card__task">Aguardando missão...</p>
+                        </div>
+                        <div class="agent-card" id="agent-designer">
+                            <div class="agent-card__header">
+                                <span class="agent-card__emoji">🎨</span>
+                                <span class="agent-card__name">Designer</span>
+                                <span class="agent-card__status agent-card__status--idle">inativo</span>
+                            </div>
+                            <div class="agent-card__progress"><div class="progress-bar" style="width:0%"></div></div>
+                            <p class="agent-card__task">Aguardando missão...</p>
+                        </div>
+                        <div class="agent-card" id="agent-marketeiro">
+                            <div class="agent-card__header">
+                                <span class="agent-card__emoji">📢</span>
+                                <span class="agent-card__name">Marketeiro</span>
+                                <span class="agent-card__status agent-card__status--idle">inativo</span>
+                            </div>
+                            <div class="agent-card__progress"><div class="progress-bar" style="width:0%"></div></div>
+                            <p class="agent-card__task">Aguardando missão...</p>
+                        </div>
+                        <div class="agent-card" id="agent-seo">
+                            <div class="agent-card__header">
+                                <span class="agent-card__emoji">🔍</span>
+                                <span class="agent-card__name">SEO</span>
+                                <span class="agent-card__status agent-card__status--idle">inativo</span>
+                            </div>
+                            <div class="agent-card__progress"><div class="progress-bar" style="width:0%"></div></div>
+                            <p class="agent-card__task">Aguardando missão...</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: Biblioteca de Modelos -->
+    <div class="modal" id="templatesModal">
+        <div class="modal__backdrop" onclick="closeModal('templatesModal')"></div>
+        <div class="modal__content">
+            <div class="modal__header">
+                <h2>📐 Biblioteca de Modelos</h2>
+                <button class="modal__close" onclick="closeModal('templatesModal')">✕</button>
+            </div>
+            <div class="modal__filters">
+                <input type="text" class="search-input" placeholder="Buscar modelo..." id="templateSearch">
+                <div class="filter-chips">
+                    <button class="chip chip--active" data-filter="todos">Todos</button>
+                    <button class="chip" data-filter="landing">Landing Pages</button>
+                    <button class="chip" data-filter="saas">SaaS</button>
+                    <button class="chip" data-filter="ecommerce">E-commerce</button>
+                    <button class="chip" data-filter="blog">Blogs</button>
+                    <button class="chip" data-filter="dashboard">Dashboards</button>
+                </div>
+            </div>
+            <div class="templates-grid" id="templatesGrid">
+                <p class="empty-state">Nenhum modelo capturado ainda. Use o pipeline de captura para adicionar sites.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

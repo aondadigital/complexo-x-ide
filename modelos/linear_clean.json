@@ -1,0 +1,25 @@
+{
+  "id": "linear_clean",
+  "nome": "Linear Clean Dashboard",
+  "categoria": "dashboard",
+  "descricao": "Interface minimalista de alta precisão, cinzas cirúrgicos, borders sutis e performance máxima.",
+  "cores": {
+    "fundo": "#0c0d0e",
+    "superficie": "#151618",
+    "primaria": "#5e6ad2",
+    "secundaria": "#38bdf8",
+    "texto": "#f7f8f8",
+    "texto_secundario": "#8a8f98"
+  },
+  "tipografia": {
+    "familia": "Inter, -apple-system, sans-serif",
+    "h1": "44px",
+    "h2": "28px",
+    "corpo": "14px"
+  },
+  "layout": {
+    "border_radius": "8px",
+    "sombra": "0 1px 3px rgba(0,0,0,0.4)",
+    "animacao": "fade 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "vercel_minimal",
+  "nome": "Vercel Minimalist",
+  "categoria": "landing",
+  "descricao": "Monocromático de alto contraste, tipografia Geek/JetBrains Mono com Inter, elegância pura.",
+  "cores": {
+    "fundo": "#000000",
+    "superficie": "#111111",
+    "primaria": "#ffffff",
+    "secundaria": "#0070f3",
+    "texto": "#ededed",
+    "texto_secundario": "#888888"
+  },
+  "tipografia": {
+    "familia": "Geist, Inter, sans-serif",
+    "h1": "64px",
+    "h2": "32px",
+    "corpo": "16px"
+  },
+  "layout": {
+    "border_radius": "6px",
+    "sombra": "0 0 0 1px #333",
+    "animacao": "slideUp 0.3s ease"
+  }
+}

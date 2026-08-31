@@ -741,3 +741,156 @@ body.antigravity-theme {
     cursor: col-resize;
 }
 body.is-resizing #dragOverlay { display: block; }
+
+/* ============================================
+   TOPBAR DROPDOWN MENUS
+   ============================================ */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--bg-card);
+    min-width: 190px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    z-index: 1000;
+    padding: 4px 0;
+}
+
+.dropdown-content.show {
+    display: block;
+}
+
+.dropdown-content a {
+    color: var(--text-main);
+    padding: 6px 14px;
+    text-decoration: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    transition: background 0.1s;
+}
+
+.dropdown-content a:hover {
+    background: var(--bg-hover);
+}
+
+.dropdown-content hr {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 4px 0;
+}
+
+.shortcut {
+    color: var(--text-dim);
+    font-size: 10px;
+    font-family: var(--font-mono);
+}
+
+/* ============================================
+   AUTOCOMPLETE POPUP FOR @ AND /
+   ============================================ */
+.autocomplete-popup {
+    position: absolute;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+    min-width: 240px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 9999;
+    padding: 4px 0;
+}
+
+.autocomplete-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text-main);
+    cursor: pointer;
+}
+
+.autocomplete-item:hover, .autocomplete-item--selected {
+    background: var(--bg-hover);
+    color: var(--accent);
+}
+
+/* ============================================
+   INTEGRATED BOTTOM TERMINAL DRAWER
+   ============================================ */
+.terminal-drawer {
+    position: absolute;
+    bottom: 22px; /* Above statusbar */
+    left: 44px; /* Next to rail */
+    right: 0;
+    height: 220px;
+    background: #0d0e12;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    z-index: 500;
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.4);
+}
+
+.terminal-header {
+    height: 28px;
+    background: var(--bg-rail);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+}
+
+.terminal-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.terminal-btn:hover { color: var(--text-main); background: var(--bg-hover); }
+
+.terminal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: #cbd5e1;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.terminal-input-row {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    background: #090a0d;
+    border-top: 1px solid var(--border-subtle);
+    gap: 6px;
+}
+
+.terminal-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #e2e8f0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+}

@@ -15,15 +15,43 @@
     <header class="antigravity-topbar">
         <div class="topbar-left-menu">
             <div class="app-logo">✦</div>
-            <nav class="menu-items">
-                <button class="menu-btn">Arquivo</button>
-                <button class="menu-btn">Editar</button>
-                <button class="menu-btn">Seleção</button>
-                <button class="menu-btn">Ver</button>
-                <button class="menu-btn">Acessar</button>
-                <button class="menu-btn">Executar</button>
-                <button class="menu-btn">Terminal</button>
-                <button class="menu-btn">Ajuda</button>
+                        <nav class="menu-items">
+                <div class="dropdown">
+                    <button class="menu-btn" onclick="toggleMenu('menuArquivo')">Arquivo</button>
+                    <div class="dropdown-content" id="menuArquivo">
+                        <a href="javascript:void(0)" onclick="triggerNewFile()">Novo Arquivo <span class="shortcut">Ctrl+N</span></a>
+                        <a href="javascript:void(0)" onclick="triggerNewFolder()">Nova Pasta</a>
+                        <a href="javascript:void(0)" onclick="triggerSaveFile()">Salvar Arquivo <span class="shortcut">Ctrl+S</span></a>
+                        <hr>
+                        <a href="javascript:void(0)" onclick="triggerOpenFolder()">Abrir Pasta...</a>
+                        <a href="javascript:void(0)" onclick="triggerExportZip()">Exportar ZIP</a>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <button class="menu-btn" onclick="toggleMenu('menuEditar')">Editar</button>
+                    <div class="dropdown-content" id="menuEditar">
+                        <a href="javascript:void(0)" onclick="editorAction('undo')">Desfazer <span class="shortcut">Ctrl+Z</span></a>
+                        <a href="javascript:void(0)" onclick="editorAction('redo')">Refazer <span class="shortcut">Ctrl+Y</span></a>
+                        <hr>
+                        <a href="javascript:void(0)" onclick="editorAction('find')">Localizar <span class="shortcut">Ctrl+F</span></a>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <button class="menu-btn" onclick="toggleMenu('menuVer')">Ver</button>
+                    <div class="dropdown-content" id="menuVer">
+                        <a href="javascript:void(0)" onclick="triggerTogglePreview()">Alternar Preview / Código <span class="shortcut">◫</span></a>
+                        <a href="javascript:void(0)" onclick="triggerToggleExplorer()">Alternar Explorer <span class="shortcut">Ctrl+B</span></a>
+                        <a href="javascript:void(0)" onclick="triggerToggleTerminal()">Terminal Integrado <span class="shortcut">Ctrl+~</span></a>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <button class="menu-btn" onclick="toggleMenu('menuTerminal')">Terminal</button>
+                    <div class="dropdown-content" id="menuTerminal">
+                        <a href="javascript:void(0)" onclick="triggerToggleTerminal()">Novo Terminal</a>
+                        <a href="javascript:void(0)" onclick="clearTerminal()">Limpar Saída</a>
+                    </div>
+                </div>
+                <button class="menu-btn" onclick="openTemplatesModal()">Modelos</button>
             </nav>
         </div>
 
@@ -199,6 +227,32 @@
             </div>
         </div>
     </div>
+    <!-- HIDDEN ATTACHMENT INPUT -->
+    <input type="file" id="promptFileInput" style="display:none;" onchange="handleFileAttached(event)">
+
+    <!-- AUTOCOMPLETE POPUP FOR @ AND / -->
+    <div class="autocomplete-popup" id="autocompletePopup" style="display:none;"></div>
+
+    <!-- INTEGRATED BOTTOM TERMINAL DRAWER -->
+    <div class="terminal-drawer" id="terminalDrawer" style="display:none;">
+        <div class="terminal-header">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:11px;font-weight:700;color:var(--text-main);">TERMINAL</span>
+                <span style="font-size:11px;color:var(--text-dim);" id="termCwd">PROJETOS</span>
+            </div>
+            <div style="display:flex;gap:6px;">
+                <button class="terminal-btn" onclick="clearTerminal()" title="Limpar">Limpar</button>
+                <button class="terminal-btn" onclick="triggerToggleTerminal()" title="Fechar">✕</button>
+            </div>
+        </div>
+        <div class="terminal-body" id="terminalOutput">
+            <div style="color:var(--text-dim);font-size:11.5px;margin-bottom:6px;">✦ Complexo-X Core Terminal Integrado [Pronto]</div>
+        </div>
+        <div class="terminal-input-row">
+            <span style="color:#10b981;font-weight:700;font-size:12px;">$ </span>
+            <input type="text" id="terminalInput" class="terminal-input" placeholder="Digite um comando (ex: git status, ls, python --version)...">
+        </div>
+    </div>
 </body></html>"></iframe>
                 </div>
 
@@ -295,6 +349,32 @@
                     <!-- Sessões renderizadas dinamicamente -->
                 </div>
             </div>
+        </div>
+    </div>
+    <!-- HIDDEN ATTACHMENT INPUT -->
+    <input type="file" id="promptFileInput" style="display:none;" onchange="handleFileAttached(event)">
+
+    <!-- AUTOCOMPLETE POPUP FOR @ AND / -->
+    <div class="autocomplete-popup" id="autocompletePopup" style="display:none;"></div>
+
+    <!-- INTEGRATED BOTTOM TERMINAL DRAWER -->
+    <div class="terminal-drawer" id="terminalDrawer" style="display:none;">
+        <div class="terminal-header">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:11px;font-weight:700;color:var(--text-main);">TERMINAL</span>
+                <span style="font-size:11px;color:var(--text-dim);" id="termCwd">PROJETOS</span>
+            </div>
+            <div style="display:flex;gap:6px;">
+                <button class="terminal-btn" onclick="clearTerminal()" title="Limpar">Limpar</button>
+                <button class="terminal-btn" onclick="triggerToggleTerminal()" title="Fechar">✕</button>
+            </div>
+        </div>
+        <div class="terminal-body" id="terminalOutput">
+            <div style="color:var(--text-dim);font-size:11.5px;margin-bottom:6px;">✦ Complexo-X Core Terminal Integrado [Pronto]</div>
+        </div>
+        <div class="terminal-input-row">
+            <span style="color:#10b981;font-weight:700;font-size:12px;">$ </span>
+            <input type="text" id="terminalInput" class="terminal-input" placeholder="Digite um comando (ex: git status, ls, python --version)...">
         </div>
     </div>
 </body>

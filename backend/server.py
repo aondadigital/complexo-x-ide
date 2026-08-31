@@ -596,6 +596,29 @@ async def save_chat_session(req: SaveSessionRequest):
     save_sessions(sessions)
     return {"ok": True, "session": req.model_dump()}
 
+class TerminalExecRequest(BaseModel):
+    command: str
+
+@app.post("/api/terminal/exec")
+async def execute_terminal_command(req: TerminalExecRequest):
+    root = Path(ACTIVE_WORKSPACE["path"]) if ACTIVE_WORKSPACE.get("path") else BASE_DIR
+    cmd = req.command.strip()
+    if not cmd:
+        return {"output": ""}
+        
+    try:
+        proc = await asyncio.create_subprocess_shell(
+            cmd,
+            cwd=str(root),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30.0)
+        out_str = stdout.decode("utf-8", errors="replace") + stderr.decode("utf-8", errors="replace")
+        return {"output": out_str, "returncode": proc.returncode}
+    except Exception as e:
+        return {"output": f"Erro na execução: {str(e)}", "returncode": 1}
+
 @app.post("/api/mission")
 async def execute_mission_pipeline(mission: MissionRequest):
     asyncio.create_task(run_parallel_pipeline(mission))

@@ -1,4 +1,242 @@
 ﻿
+// ---- WIRED TOPBAR MENUS & ACTIONS ----
+window.toggleMenu = function(menuId) {
+    document.querySelectorAll('.dropdown-content').forEach(d => {
+        if (d.id !== menuId) d.classList.remove('show');
+    });
+    document.getElementById(menuId)?.classList.toggle('show');
+};
+
+window.addEventListener('click', (e) => {
+    if (!e.target.matches('.menu-btn')) {
+        document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
+    }
+});
+
+window.triggerNewFile = function() {
+    const fileName = prompt('Nome do novo arquivo (ex: app.py, checkout.html):');
+    if (!fileName) return;
+    state.files[fileName] = { lang: 'plaintext', content: '' };
+    switchFile(fileName);
+    loadFileTree();
+};
+
+window.triggerNewFolder = function() {
+    const folderName = prompt('Nome da nova pasta:');
+    if (!folderName) return;
+    fetch(`${API_BASE}/fs/folder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: folderName })
+    }).then(() => loadFileTree());
+};
+
+window.triggerSaveFile = async function() {
+    if (!state.activeFile || !state.files[state.activeFile]) return;
+    const content = state.monacoEditor ? state.monacoEditor.getValue() : state.files[state.activeFile].content;
+    try {
+        await fetch(`${API_BASE}/fs/file`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: state.activeFile, content: content })
+        });
+        const statusCursor = document.getElementById('statusCursorPos');
+        if (statusCursor) {
+            const original = statusCursor.textContent;
+            statusCursor.textContent = '💾 Arquivo Salvo!';
+            setTimeout(() => { statusCursor.textContent = original; }, 2000);
+        }
+    } catch (e) {}
+};
+
+window.triggerOpenFolder = function() {
+    openFolderDialog();
+};
+
+window.triggerExportZip = function() {
+    window.open(`${API_BASE}/project/export?project_id=default`, '_blank');
+};
+
+window.editorAction = function(action) {
+    if (!state.monacoEditor) return;
+    if (action === 'undo') state.monacoEditor.trigger('keyboard', 'undo', null);
+    else if (action === 'redo') state.monacoEditor.trigger('keyboard', 'redo', null);
+    else if (action === 'find') state.monacoEditor.trigger('keyboard', 'actions.find', null);
+};
+
+window.triggerTogglePreview = function() {
+    const btn = document.getElementById('btnTogglePreviewView');
+    if (btn) btn.click();
+};
+
+window.triggerToggleExplorer = function() {
+    const explorer = document.getElementById('explorerPanel');
+    if (explorer) explorer.classList.toggle('antigravity-explorer--hidden');
+};
+
+// ---- INTEGRATED BOTTOM TERMINAL DRAWER ----
+window.triggerToggleTerminal = function() {
+    const term = document.getElementById('terminalDrawer');
+    if (!term) return;
+    const isHidden = term.style.display === 'none';
+    term.style.display = isHidden ? 'flex' : 'none';
+    if (isHidden) {
+        document.getElementById('terminalInput')?.focus();
+    }
+};
+
+window.clearTerminal = function() {
+    const out = document.getElementById('terminalOutput');
+    if (out) out.innerHTML = '<div style="color:var(--text-dim);font-size:11.5px;margin-bottom:6px;">✦ Terminal Limpo.</div>';
+};
+
+async function executeTerminalCommand(cmd) {
+    const out = document.getElementById('terminalOutput');
+    if (!out || !cmd.trim()) return;
+
+    out.innerHTML += `\n<span style="color:#10b981;">$ ${escapeHtml(cmd)}</span>\n`;
+    try {
+        const res = await fetch(`${API_BASE}/terminal/exec`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: cmd })
+        });
+        const data = await res.json();
+        out.innerHTML += `<span>${escapeHtml(data.output || '')}</span>`;
+    } catch (e) {
+        out.innerHTML += `<span style="color:#ef4444;">Erro ao executar comando na VPS.</span>\n`;
+    }
+    out.scrollTop = out.scrollHeight;
+}
+
+// ---- ATTACHMENT UPLOAD (+) ----
+window.handleFileAttached = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const input = document.getElementById('chatInput');
+    if (input) {
+        input.value = `[Arquivo Anexado: ${file.name}] ` + input.value;
+        input.focus();
+    }
+};
+
+// ---- AUTOCOMPLETE FOR @ AND / ----
+function initPromptAutocomplete() {
+    const input = document.getElementById('chatInput');
+    const popup = document.getElementById('autocompletePopup');
+    if (!input || !popup) return;
+
+    input.addEventListener('input', () => {
+        const text = input.value;
+        const cursor = input.selectionStart;
+        const lastWord = text.slice(0, cursor).split(/\s+/).pop();
+
+        if (lastWord.startsWith('@')) {
+            const query = lastWord.slice(1).toLowerCase();
+            const files = Object.keys(state.files);
+            const matches = files.filter(f => f.toLowerCase().includes(query));
+            if (matches.length > 0) {
+                popup.innerHTML = matches.map(m => `
+                    <div class="autocomplete-item" onclick="insertMention('${m}')">
+                        <span>${getFileIcon(m)}</span> <strong>${m}</strong>
+                    </div>
+                `).join('');
+                popup.style.display = 'block';
+                popup.style.bottom = '110px';
+                popup.style.left = '60px';
+                return;
+            }
+        } else if (lastWord.startsWith('/')) {
+            const actions = [
+                { cmd: '/deploy', desc: 'Deploy instantâneo na VPS' },
+                { cmd: '/seguranca', desc: 'Auditar banco e zero SQLi' },
+                { cmd: '/modelo', desc: 'Abrir biblioteca de modelos' },
+                { cmd: '/limpar', desc: 'Limpar conversa ativa' }
+            ];
+            const query = lastWord.slice(1).toLowerCase();
+            const matches = actions.filter(a => a.cmd.includes(query));
+            if (matches.length > 0) {
+                popup.innerHTML = matches.map(a => `
+                    <div class="autocomplete-item" onclick="insertSlashCommand('${a.cmd}')">
+                        <strong>${a.cmd}</strong> <small style="color:var(--text-dim);margin-left:6px;">${a.desc}</small>
+                    </div>
+                `).join('');
+                popup.style.display = 'block';
+                popup.style.bottom = '110px';
+                popup.style.left = '60px';
+                return;
+            }
+        }
+        popup.style.display = 'none';
+    });
+}
+
+window.insertMention = function(filename) {
+    const input = document.getElementById('chatInput');
+    const popup = document.getElementById('autocompletePopup');
+    if (input) {
+        input.value = input.value.replace(/@\w*$/, `@${filename} `);
+        input.focus();
+    }
+    if (popup) popup.style.display = 'none';
+};
+
+window.insertSlashCommand = function(cmd) {
+    const input = document.getElementById('chatInput');
+    const popup = document.getElementById('autocompletePopup');
+    if (input) {
+        input.value = `${cmd} `;
+        input.focus();
+    }
+    if (popup) popup.style.display = 'none';
+};
+
+// ---- GLOBAL KEYBINDINGS (ANTIGRAVITY / VS CODE) ----
+function initKeybindings() {
+    window.addEventListener('keydown', (e) => {
+        // Ctrl + S (Save)
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            triggerSaveFile();
+        }
+        // Ctrl + ~ (Toggle Terminal)
+        if ((e.ctrlKey || e.metaKey) && (e.key === '`' || e.key === '~')) {
+            e.preventDefault();
+            triggerToggleTerminal();
+        }
+        // Ctrl + B (Toggle Explorer)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+            e.preventDefault();
+            triggerToggleExplorer();
+        }
+        // Ctrl + N (New File)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+            e.preventDefault();
+            triggerNewFile();
+        }
+    });
+
+    // Terminal Input Enter
+    document.getElementById('terminalInput')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const val = e.target.value;
+            e.target.value = '';
+            executeTerminalCommand(val);
+        }
+    });
+
+    // Attachment Button (+)
+    document.getElementById('btnAddContext')?.addEventListener('click', () => {
+        document.getElementById('promptFileInput')?.click();
+    });
+
+    // Rail Terminal Button
+    document.getElementById('railBtnTerminal')?.addEventListener('click', () => {
+        triggerToggleTerminal();
+    });
+}
+
+
 // ---- STEP 1: MONACO DIFF EDITOR (REVIEW CHANGES) ----
 let diffEditorInstance = null;
 let previousFilesState = {
@@ -911,6 +1149,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initChatSessionsManager();
     initModelPicker();
     initWebSocket();
+    initPromptAutocomplete();
+    initKeybindings();
 
     document.getElementById('btnSend')?.addEventListener('click', handleSendMessage);
     document.getElementById('chatInput')?.addEventListener('keydown', (e) => {

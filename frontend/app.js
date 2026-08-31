@@ -1,5 +1,5 @@
 ﻿/* ============================================
-   COMPLEXO-X IDE — Application Logic v2.0
+   COMPLEXO-X IDE — Application Logic v2.8
    complexo-x.com.br/ide
    ============================================ */
 
@@ -15,7 +15,7 @@ const state = {
     files: {
         'index.html': { lang: 'html', content: `<!DOCTYPE html>\n<html lang="pt-BR">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Meu Projeto — Complexo-X IDE</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <header class="hero">\n        <h1>Complexo-X IDE</h1>\n        <p>Descreva o projeto no chat. A equipe de agentes vai construir para você.</p>\n    </header>\n</body>\n</html>` },
         'style.css': { lang: 'css', content: `/* Design Tokens */\n* { margin: 0; padding: 0; box-sizing: border-box; }\n\nbody {\n    font-family: 'Inter', sans-serif;\n    background: #07080d;\n    color: #e8eaf0;\n}\n\n.hero {\n    min-height: 100vh;\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    justify-content: center;\n    text-align: center;\n    padding: 20px;\n}\n\nh1 {\n    font-size: 3.5rem;\n    background: linear-gradient(135deg, #7c3aed, #06b6d4);\n    -webkit-background-clip: text;\n    -webkit-text-fill-color: transparent;\n    margin-bottom: 16px;\n}\n\np {\n    color: #8b8fa3;\n    font-size: 1.2rem;\n    max-width: 500px;\n}` },
-        'api.py': { lang: 'python', content: `from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI(title="Complexo-X Commerce API")\n\nclass CheckoutPix(BaseModel):\n    amount: float\n    customer_name: str\n    customer_whatsapp: str\n\n@app.get("/api/health")\ndef health():\n    return {"status": "online", "engine": "Complexo-X Engine"}\n\n@app.post("/api/checkout/pix")\ndef create_pix(order: CheckoutPix):\n    # Integração com Pix Dinâmico e Conciliação Real\n    return {\n        "status": "pending",\n        "qr_code": "00020126580014BR.GOV.BCB.PIX...",\n        "amount": order.amount,\n        "customer": order.customer_name\n    }` }
+        'api.py': { lang: 'python', content: `from fastapi import FastAPI, Depends\nfrom pydantic import BaseModel, EmailStr\nimport sqlite3\n\napp = FastAPI(title="Complexo-X Core API", version="2.5.0")\n\ndef get_db():\n    conn = sqlite3.connect("core.db", timeout=30.0)\n    conn.execute("PRAGMA journal_mode=WAL;")\n    conn.execute("PRAGMA busy_timeout=5000;")\n    try:\n        yield conn\n    finally:\n        conn.close()\n\nclass UserCreate(BaseModel):\n    name: str\n    email: EmailStr\n\n@app.get("/api/health")\ndef health():\n    return {"status": "online", "database": "SQLite WAL Mode Ready"}\n\n@app.post("/api/users")\ndef create_user(user: UserCreate, db: sqlite3.Connection = Depends(get_db)):\n    cursor = db.cursor()\n    cursor.execute("INSERT INTO users (name, email) VALUES (?, ?)", (user.name, user.email))\n    db.commit()\n    return {"id": cursor.lastrowid, "name": user.name}` }
     },
     activeFile: 'index.html',
     selectedTemplate: 'shopify_dawn_ecommerce',
@@ -24,8 +24,8 @@ const state = {
         programador: { name: 'Programador', emoji: '👨‍💻', status: 'idle', progress: 0, task: 'Aguardando missão...' },
         designer:    { name: 'Designer',    emoji: '🎨', status: 'idle', progress: 0, task: 'Aguardando missão...' },
         marketeiro:  { name: 'Marketeiro',  emoji: '📢', status: 'idle', progress: 0, task: 'Aguardando missão...' },
-        seo:         { name: 'SEO',         emoji: '🔍', status: 'idle', progress: 0, task: 'Aguardando missão...' },
         seguranca:   { name: 'Segurança',   emoji: '🛡️', status: 'idle', progress: 0, task: 'Aguardando missão...' },
+        seo:         { name: 'SEO',         emoji: '🔍', status: 'idle', progress: 0, task: 'Aguardando missão...' }
     },
     monacoEditor: null,
 };
@@ -226,53 +226,6 @@ window.applyTemplate = function(templateId) {
     setPrompt(`Construa um projeto moderno usando como base visual o modelo ${templateId}`);
 };
 
-// ---- WEBSOCKET TELEMETRY & AUTO-INJECTION ----
-function initWebSocket() {
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = window.location.host;
-    const wsUrl = `${wsProtocol}//${wsHost}/ide/ws/telemetry`.replace('//ide/', '/ide/');
-    
-    // Fallback URL if root
-    const directWsUrl = `${wsProtocol}//${wsHost}/ws/telemetry`;
-
-    let ws;
-    try {
-        ws = new WebSocket(window.location.pathname.includes('/ide') ? wsUrl : directWsUrl);
-    } catch (e) {
-        return;
-    }
-
-    ws.onmessage = (event) => {
-        try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'agent_update') {
-                updateAgent(data.agent, {
-                    status: data.status,
-                    progress: data.progress,
-                    task: data.task
-                });
-            } else if (data.type === 'chat_message') {
-                addChatMessage(data.name, data.emoji, data.text, 'agent');
-            } else if (data.type === 'project_payload') {
-                // Injeta código auto-corrigido pelo Visual Inspector no Editor e Preview
-                state.files['index.html'].content = data.html;
-                state.files['style.css'].content = data.css;
-                if (data.api_py) state.files['api.py'].content = data.api_py;
-                
-                if (state.monacoEditor) {
-                    const currentLang = state.files[state.activeFile].lang;
-                    const currentContent = state.files[state.activeFile].content;
-                    const model = monaco.editor.createModel(currentContent, currentLang);
-                    state.monacoEditor.setModel(model);
-                }
-                updatePreview();
-            }
-        } catch (e) {}
-    };
-}
-
-// ---- SIDEBAR NAVIGATION ----
-
 // ---- FILE EXPLORER & TREE VIEW (SIDEBAR #2) ----
 async function loadFileTree() {
     const container = document.getElementById('fileTreeContainer');
@@ -295,7 +248,6 @@ async function loadFileTree() {
         });
         container.appendChild(fragment);
     } catch (e) {
-        container.innerHTML = '<div class="tree-loading" style="color:var(--accent-amber)">Modo Workspace Local Ativo</div>';
         renderFallbackTree(container);
     }
 }
@@ -307,7 +259,6 @@ function getFileIcon(filename) {
     if (filename.endsWith('.py')) return '🐍';
     if (filename.endsWith('.json') || filename.endsWith('.yaml')) return '📐';
     if (filename.endsWith('.md')) return '📄';
-    if (filename.endsWith('.png') || filename.endsWith('.jpg') || filename.endsWith('.svg')) return '🖼️';
     return '📝';
 }
 
@@ -415,7 +366,6 @@ async function openFileFromTree(path, filename) {
 
     state.files[filename] = { lang, content };
     
-    // Add tab if not present
     let tab = document.querySelector(`.tab[data-file="${filename}"]`);
     if (!tab) {
         const tabsContainer = document.querySelector('.tabs');
@@ -431,94 +381,209 @@ async function openFileFromTree(path, filename) {
     switchFile(filename);
 }
 
-function initExplorerActions() {
-    // Refresh
-    document.getElementById('btnRefreshTree')?.addEventListener('click', loadFileTree);
+// ---- MOUSE DRAGGABLE RESIZERS (UNIVERSAL ENGINE) ----
+function initResizers() {
+    let activeDrag = null;
 
-    // New File
-    document.getElementById('btnNewFile')?.addEventListener('click', async () => {
-        const name = prompt('Digite o nome do novo arquivo (ex: app.js, schema.sql):');
-        if (!name) return;
-        try {
-            await fetch(`${API_BASE}/fs/file`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ path: `workspace/${name}`, content: '' })
-            });
-            await loadFileTree();
-            openFileFromTree(`workspace/${name}`, name);
-        } catch (e) {
-            alert('Arquivo criado no workspace local');
-        }
-    });
-
-    // New Folder
-    document.getElementById('btnNewFolder')?.addEventListener('click', async () => {
-        const name = prompt('Digite o nome da nova pasta (ex: components, utils):');
-        if (!name) return;
-        try {
-            await fetch(`${API_BASE}/fs/folder`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ path: `workspace/${name}` })
-            });
-            await loadFileTree();
-        } catch (e) {}
-    });
-
-    // Resizer Explorer
     const resizerVExplorer = document.getElementById('resizerVExplorer');
     const explorerPanel = document.getElementById('explorerPanel');
 
-    if (resizerVExplorer && explorerPanel) {
-        let isDraggingExplorer = false;
+    const resizerVTop = document.getElementById('resizerVTop');
+    const panelEditor = document.getElementById('panelEditor');
+    const panelPreview = document.getElementById('panelPreview');
+    const topRow = document.getElementById('topRow');
 
+    const resizerH = document.getElementById('resizerH');
+    const bottomRow = document.getElementById('bottomRow');
+    const mainContainer = document.getElementById('mainContainer');
+
+    const resizerVBottom = document.getElementById('resizerVBottom');
+    const panelChat = document.getElementById('panelChat');
+    const panelAgents = document.getElementById('panelAgents');
+
+    // 1. MouseDown Triggers
+    if (resizerVExplorer && explorerPanel) {
         resizerVExplorer.addEventListener('mousedown', (e) => {
-            isDraggingExplorer = true;
-            document.body.classList.add('is-resizing');
+            e.preventDefault();
+            activeDrag = 'explorer';
+            document.body.classList.add('is-resizing', 'is-resizing-v');
             resizerVExplorer.classList.add('resizer--dragging');
         });
+    }
 
-        document.addEventListener('mousemove', (e) => {
-            if (!isDraggingExplorer) return;
-            const newWidth = e.clientX - 72; // 72px is sidebar width
-            if (newWidth > 140 && newWidth < 450) {
-                explorerPanel.style.width = `${newWidth}px`;
+    if (resizerVTop && panelEditor && panelPreview && topRow) {
+        resizerVTop.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            activeDrag = 'vTop';
+            document.body.classList.add('is-resizing', 'is-resizing-v');
+            resizerVTop.classList.add('resizer--dragging');
+        });
+    }
+
+    if (resizerH && topRow && bottomRow && mainContainer) {
+        resizerH.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            activeDrag = 'hMain';
+            document.body.classList.add('is-resizing', 'is-resizing-h');
+            resizerH.classList.add('resizer--dragging');
+        });
+    }
+
+    if (resizerVBottom && panelChat && panelAgents && bottomRow) {
+        resizerVBottom.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            activeDrag = 'vBottom';
+            document.body.classList.add('is-resizing', 'is-resizing-v');
+            resizerVBottom.classList.add('resizer--dragging');
+        });
+    }
+
+    // 2. Global MouseMove
+    window.addEventListener('mousemove', (e) => {
+        if (!activeDrag) return;
+
+        if (activeDrag === 'explorer' && explorerPanel) {
+            const sidebarWidth = 72; // Largura da sidebar fixa de ícones
+            const newWidth = e.clientX - sidebarWidth;
+            if (newWidth >= 100 && newWidth <= 600) {
+                explorerPanel.style.width = newWidth + 'px';
+                explorerPanel.style.flexBasis = newWidth + 'px';
                 if (state.monacoEditor) state.monacoEditor.layout();
                 localStorage.setItem('cx_explorer_width', newWidth);
             }
-        });
+        } else if (activeDrag === 'vTop' && panelEditor && panelPreview && topRow) {
+            const containerRect = topRow.getBoundingClientRect();
+            const offsetLeft = e.clientX - containerRect.left;
+            const percentage = (offsetLeft / containerRect.width) * 100;
 
-        document.addEventListener('mouseup', () => {
-            if (isDraggingExplorer) {
-                isDraggingExplorer = false;
-                document.body.classList.remove('is-resizing');
-                resizerVExplorer.classList.remove('resizer--dragging');
+            if (percentage >= 15 && percentage <= 85) {
+                panelEditor.style.flex = `0 0 ${percentage}%`;
+                panelPreview.style.flex = `1 1 ${100 - percentage}%`;
                 if (state.monacoEditor) state.monacoEditor.layout();
+                localStorage.setItem('cx_split_v_top', percentage);
             }
-        });
+        } else if (activeDrag === 'hMain' && topRow && bottomRow && mainContainer) {
+            const containerRect = mainContainer.getBoundingClientRect();
+            const offsetTop = e.clientY - containerRect.top;
+            const percentage = (offsetTop / containerRect.height) * 100;
 
-        const savedWidth = localStorage.getItem('cx_explorer_width');
-        if (savedWidth) {
-            explorerPanel.style.width = `${savedWidth}px`;
+            if (percentage >= 15 && percentage <= 85) {
+                topRow.style.flex = `0 0 ${percentage}%`;
+                bottomRow.style.height = `${100 - percentage}%`;
+                bottomRow.style.flex = `0 0 ${100 - percentage}%`;
+                if (state.monacoEditor) state.monacoEditor.layout();
+                localStorage.setItem('cx_split_h', percentage);
+            }
+        } else if (activeDrag === 'vBottom' && panelChat && panelAgents && bottomRow) {
+            const containerRect = bottomRow.getBoundingClientRect();
+            const offsetLeft = e.clientX - containerRect.left;
+            const percentage = (offsetLeft / containerRect.width) * 100;
+
+            if (percentage >= 15 && percentage <= 85) {
+                panelChat.style.flex = `0 0 ${percentage}%`;
+                panelAgents.style.flex = `1 1 ${100 - percentage}%`;
+                localStorage.setItem('cx_split_v_bottom', percentage);
+            }
         }
+    });
+
+    // 3. Global MouseUp
+    window.addEventListener('mouseup', () => {
+        if (!activeDrag) return;
+        activeDrag = null;
+        document.body.classList.remove('is-resizing', 'is-resizing-v', 'is-resizing-h');
+        document.querySelectorAll('.resizer').forEach(r => r.classList.remove('resizer--dragging'));
+        if (state.monacoEditor) state.monacoEditor.layout();
+    });
+
+    // 4. Restore saved dimensions
+    const savedExplorer = localStorage.getItem('cx_explorer_width');
+    if (savedExplorer && explorerPanel) {
+        explorerPanel.style.width = savedExplorer + 'px';
+        explorerPanel.style.flexBasis = savedExplorer + 'px';
+    }
+
+    const savedVTop = localStorage.getItem('cx_split_v_top');
+    if (savedVTop && panelEditor && panelPreview) {
+        panelEditor.style.flex = `0 0 ${savedVTop}%`;
+        panelPreview.style.flex = `1 1 ${100 - savedVTop}%`;
+    }
+
+    const savedH = localStorage.getItem('cx_split_h');
+    if (savedH && topRow && bottomRow) {
+        topRow.style.flex = `0 0 ${savedH}%`;
+        bottomRow.style.height = `${100 - savedH}%`;
+        bottomRow.style.flex = `0 0 ${100 - savedH}%`;
+    }
+
+    const savedVBottom = localStorage.getItem('cx_split_v_bottom');
+    if (savedVBottom && panelChat && panelAgents) {
+        panelChat.style.flex = `0 0 ${savedVBottom}%`;
+        panelAgents.style.flex = `1 1 ${100 - savedVBottom}%`;
     }
 }
+
+// ---- WEBSOCKET TELEMETRY & AUTO-INJECTION ----
+function initWebSocket() {
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsHost = window.location.host;
+    const wsUrl = `${wsProtocol}//${wsHost}/ide/ws/telemetry`.replace('//ide/', '/ide/');
+    const directWsUrl = `${wsProtocol}//${wsHost}/ws/telemetry`;
+
+    let ws;
+    try {
+        ws = new WebSocket(window.location.pathname.includes('/ide') ? wsUrl : directWsUrl);
+    } catch (e) {
+        return;
+    }
+
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'agent_update') {
+                updateAgent(data.agent, {
+                    status: data.status,
+                    progress: data.progress,
+                    task: data.task
+                });
+            } else if (data.type === 'chat_message') {
+                addChatMessage(data.name, data.emoji, data.text, 'agent');
+            } else if (data.type === 'project_payload') {
+                state.files['index.html'].content = data.html;
+                state.files['style.css'].content = data.css;
+                if (data.api_py) state.files['api.py'].content = data.api_py;
+                
+                if (state.monacoEditor) {
+                    const currentLang = state.files[state.activeFile].lang;
+                    const currentContent = state.files[state.activeFile].content;
+                    const model = monaco.editor.createModel(currentContent, currentLang);
+                    state.monacoEditor.setModel(model);
+                }
+                updatePreview();
+                loadFileTree();
+            }
+        } catch (e) {}
+    };
+}
+
+// ---- SIDEBAR NAVIGATION ----
 function initSidebar() {
     document.querySelectorAll('.sidebar__btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.sidebar__btn').forEach(b => b.classList.remove('sidebar__btn--active'));
-            btn.classList.add('sidebar__btn--active');
-            
             const panel = btn.dataset.panel;
-            if (panel === 'templates') {
+            if (panel === 'files') {
+                const explorer = document.getElementById('explorerPanel');
+                if (explorer) explorer.classList.toggle('explorer-panel--hidden');
+            } else if (panel === 'templates') {
                 document.getElementById('templatesModal').classList.add('modal--open');
             }
+            
+            document.querySelectorAll('.sidebar__btn').forEach(b => b.classList.remove('sidebar__btn--active'));
+            btn.classList.add('sidebar__btn--active');
         });
     });
 }
 
-// ---- DEVICE TOGGLE ----
 function initDeviceToggle() {
     document.querySelectorAll('.device-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -540,143 +605,6 @@ function closeModal(id) {
 }
 
 // ---- EVENT LISTENERS ----
-
-// ---- MOUSE DRAGGABLE RESIZERS (HORIZONTAL & VERTICAL) ----
-function initResizers() {
-    // 1. Resizer Vertical Top (Editor <-> Preview)
-    const resizerVTop = document.getElementById('resizerVTop');
-    const panelEditor = document.getElementById('panelEditor');
-    const panelPreview = document.getElementById('panelPreview');
-    const topRow = document.getElementById('topRow');
-
-    if (resizerVTop && panelEditor && panelPreview && topRow) {
-        let isDraggingVTop = false;
-
-        resizerVTop.addEventListener('mousedown', (e) => {
-            isDraggingVTop = true;
-            document.body.classList.add('is-resizing');
-            resizerVTop.classList.add('resizer--dragging');
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isDraggingVTop) return;
-            const containerRect = topRow.getBoundingClientRect();
-            const offsetLeft = e.clientX - containerRect.left;
-            const percentage = (offsetLeft / containerRect.width) * 100;
-
-            if (percentage > 15 && percentage < 85) {
-                panelEditor.style.flex = `0 0 ${percentage}%`;
-                panelPreview.style.flex = `1 1 ${100 - percentage}%`;
-                if (state.monacoEditor) state.monacoEditor.layout();
-                localStorage.setItem('cx_split_v_top', percentage);
-            }
-        });
-
-        document.addEventListener('mouseup', () => {
-            if (isDraggingVTop) {
-                isDraggingVTop = false;
-                document.body.classList.remove('is-resizing');
-                resizerVTop.classList.remove('resizer--dragging');
-                if (state.monacoEditor) state.monacoEditor.layout();
-            }
-        });
-    }
-
-    // 2. Resizer Horizontal Main (Top Row <-> Bottom Row)
-    const resizerH = document.getElementById('resizerH');
-    const bottomRow = document.getElementById('bottomRow');
-    const mainContainer = document.getElementById('mainContainer');
-
-    if (resizerH && topRow && bottomRow && mainContainer) {
-        let isDraggingH = false;
-
-        resizerH.addEventListener('mousedown', (e) => {
-            isDraggingH = true;
-            document.body.classList.add('is-resizing');
-            resizerH.classList.add('resizer--dragging');
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isDraggingH) return;
-            const containerRect = mainContainer.getBoundingClientRect();
-            const offsetTop = e.clientY - containerRect.top;
-            const percentage = (offsetTop / containerRect.height) * 100;
-
-            if (percentage > 20 && percentage < 80) {
-                topRow.style.flex = `0 0 ${percentage}%`;
-                bottomRow.style.height = `${100 - percentage}%`;
-                bottomRow.style.flex = `0 0 ${100 - percentage}%`;
-                if (state.monacoEditor) state.monacoEditor.layout();
-                localStorage.setItem('cx_split_h', percentage);
-            }
-        });
-
-        document.addEventListener('mouseup', () => {
-            if (isDraggingH) {
-                isDraggingH = false;
-                document.body.classList.remove('is-resizing');
-                resizerH.classList.remove('resizer--dragging');
-                if (state.monacoEditor) state.monacoEditor.layout();
-            }
-        });
-    }
-
-    // 3. Resizer Vertical Bottom (Chat <-> Agents)
-    const resizerVBottom = document.getElementById('resizerVBottom');
-    const panelChat = document.getElementById('panelChat');
-    const panelAgents = document.getElementById('panelAgents');
-
-    if (resizerVBottom && panelChat && panelAgents && bottomRow) {
-        let isDraggingVBottom = false;
-
-        resizerVBottom.addEventListener('mousedown', (e) => {
-            isDraggingVBottom = true;
-            document.body.classList.add('is-resizing');
-            resizerVBottom.classList.add('resizer--dragging');
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isDraggingVBottom) return;
-            const containerRect = bottomRow.getBoundingClientRect();
-            const offsetLeft = e.clientX - containerRect.left;
-            const percentage = (offsetLeft / containerRect.width) * 100;
-
-            if (percentage > 20 && percentage < 80) {
-                panelChat.style.flex = `0 0 ${percentage}%`;
-                panelAgents.style.flex = `1 1 ${100 - percentage}%`;
-                localStorage.setItem('cx_split_v_bottom', percentage);
-            }
-        });
-
-        document.addEventListener('mouseup', () => {
-            if (isDraggingVBottom) {
-                isDraggingVBottom = false;
-                document.body.classList.remove('is-resizing');
-                resizerVBottom.classList.remove('resizer--dragging');
-            }
-        });
-    }
-
-    // Restore saved split sizes
-    const savedVTop = localStorage.getItem('cx_split_v_top');
-    if (savedVTop && panelEditor && panelPreview) {
-        panelEditor.style.flex = `0 0 ${savedVTop}%`;
-        panelPreview.style.flex = `1 1 ${100 - savedVTop}%`;
-    }
-
-    const savedH = localStorage.getItem('cx_split_h');
-    if (savedH && topRow && bottomRow) {
-        topRow.style.flex = `0 0 ${savedH}%`;
-        bottomRow.style.height = `${100 - savedH}%`;
-        bottomRow.style.flex = `0 0 ${100 - savedH}%`;
-    }
-
-    const savedVBottom = localStorage.getItem('cx_split_v_bottom');
-    if (savedVBottom && panelChat && panelAgents) {
-        panelChat.style.flex = `0 0 ${savedVBottom}%`;
-        panelAgents.style.flex = `1 1 ${100 - savedVBottom}%`;
-    }
-}
 function initEvents() {
     document.querySelectorAll('.tab[data-file]').forEach(tab => {
         tab.addEventListener('click', () => switchFile(tab.dataset.file));
@@ -700,6 +628,7 @@ function initEvents() {
     });
 
     document.getElementById('btnRefresh').addEventListener('click', updatePreview);
+    document.getElementById('btnRefreshTree')?.addEventListener('click', loadFileTree);
 
     document.getElementById('btnDeploy').addEventListener('click', () => {
         addChatMessage('Sistema', '🚀', 'Deploy em 1 clique solicitado! Sincronizando com a VPS...', 'system');
@@ -722,7 +651,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initResizers();
     loadTemplates();
     loadFileTree();
-    initExplorerActions();
     initWebSocket();
     Object.keys(state.agents).forEach(renderAgentCard);
 });

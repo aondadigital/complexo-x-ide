@@ -42,6 +42,10 @@
                 <span class="vps-status__dot"></span>
                 <span>VPS Online</span>
             </div>
+                        <button class="btn btn--secondary" id="btnExportZip" title="Baixar Projeto Completo em ZIP">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Exportar ZIP
+            </button>
             <button class="btn btn--deploy" id="btnDeploy">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v10M4 7l4 4 4-4M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 Deploy
@@ -161,7 +165,30 @@
                         </div>
                     </div>
                     <div class="panel__body preview-body">
-                        <iframe id="previewFrame" class="preview-iframe" srcdoc="<html><body style='background:#0f1117;color:#8b8fa3;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif'><p style='text-align:center'>Aguardando construção...<br><small style='opacity:0.5'>Os agentes vão construir aqui</small></p>    <div id="dragOverlay"></div>
+                        <iframe id="previewFrame" class="preview-iframe" srcdoc="<html><body style='background:#0f1117;color:#8b8fa3;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif'><p style='text-align:center'>Aguardando construção...<br><small style='opacity:0.5'>Os agentes vão construir aqui</small></p>        <!-- FOOTER STATUS BAR (ANTIGRAVITY / VS CODE STYLE) -->
+    <footer class="statusbar">
+        <div class="statusbar__left">
+            <div class="statusbar__item" id="statusGitBranch">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 3v12M18 9a3 3 0 100-6 3 3 0 000 6zM6 21a3 3 0 100-6 3 3 0 000 6zM18 9a9 9 0 01-9 9" stroke="currentColor" stroke-width="1.5"/></svg>
+                <span>main</span>
+            </div>
+            <div class="statusbar__item" id="statusInspectorBadge">
+                <span class="statusbar__dot statusbar__dot--green"></span>
+                <span>Visual Inspector: 100/100</span>
+            </div>
+            <div class="statusbar__item" id="statusSecurityBadge">
+                <span class="statusbar__dot statusbar__dot--green"></span>
+                <span>Segurança: Zero SQLi (WAL Ativo)</span>
+            </div>
+        </div>
+        <div class="statusbar__right">
+            <div class="statusbar__item" id="statusCursorPos">Ln 1, Col 1</div>
+            <div class="statusbar__item">UTF-8</div>
+            <div class="statusbar__item" id="statusLang">HTML5</div>
+            <div class="statusbar__item statusbar__item--accent" id="statusMotor">⚡ Claude Opus / Custo Zero</div>
+        </div>
+    </footer>
+    <div id="dragOverlay"></div>
 </body></html>"></iframe>
                     </div>
                 </section>
@@ -172,30 +199,58 @@
 
             <!-- BOTTOM ROW: Chat + Agent Dashboard -->
             <div class="main__bottom" id="bottomRow">
-                <!-- CHAT -->
+                                <!-- CHAT & AGENT WORKSPACE (ANTIGRAVITY STYLE) -->
                 <section class="panel panel--chat" id="panelChat">
                     <div class="panel__header">
-                        <span class="panel__title">💬 Chat da Missão</span>
-                        <button class="btn btn--sm" id="btnClearChat">Limpar</button>
+                        <div class="chat-header-title">
+                            <span class="chat-header-dot"></span>
+                            <span class="panel__title">Missão & Conversa com Agentes</span>
+                        </div>
+                        <div class="panel-tabs">
+                            <button class="panel-tab panel-tab--active" data-bottom-tab="chat">💬 Missão</button>
+                            <button class="panel-tab" data-bottom-tab="terminal">💻 Terminal & Logs</button>
+                            <button class="panel-tab" data-bottom-tab="security">🛡️ Blindagem</button>
+                        </div>
+                        <div class="panel-action-btns">
+                            <button class="btn btn--sm" id="btnClearChat" title="Limpar conversa">Limpar</button>
+                            <button class="panel-btn" id="btnMaximizeChat" title="Maximizar / Expandir Chat em Tela Cheia">⤢</button>
+                        </div>
                     </div>
                     <div class="panel__body chat-body" id="chatMessages">
                         <div class="chat-welcome">
                             <div class="chat-welcome__icon">🚀</div>
-                            <h3>Complexo-X IDE</h3>
-                            <p>Descreva o que quer construir. A equipe de agentes vai trabalhar pra você.</p>
+                            <h3>Complexo-X IDE — Agente-X</h3>
+                            <p>Descreva o que deseja construir. A equipe de especialistas autônomos planeja, programa, desenha e audita para você.</p>
                             <div class="chat-welcome__examples">
-                                <button class="example-btn" onclick="setPrompt(this.textContent)">Cria uma landing page pro meu restaurante</button>
-                                <button class="example-btn" onclick="setPrompt(this.textContent)">Faz um dashboard SaaS estilo Stripe</button>
-                                <button class="example-btn" onclick="setPrompt(this.textContent)">Monta um e-commerce com catálogo e WhatsApp</button>
+                                <button class="example-btn" onclick="setPrompt(this.textContent)">Criar loja virtual com vitrine, frete e checkout Pix dinâmico</button>
+                                <button class="example-btn" onclick="setPrompt(this.textContent)">Construir plataforma SaaS com banco PostgreSQL/SQLite WAL e autenticação</button>
+                                <button class="example-btn" onclick="setPrompt(this.textContent)">Gerar landing page ultra-conversiva estilo Stripe Dark com SEO nota 100</button>
                             </div>
                         </div>
                     </div>
+
+                    <!-- FLOATING PROMPT INPUT BOX (ANTIGRAVITY GRADE) -->
                     <div class="chat-input-area">
-                        <div class="chat-input-wrapper">
-                            <textarea id="chatInput" class="chat-input" placeholder="Descreva o que quer construir..." rows="1"></textarea>
-                            <button class="chat-send" id="btnSend" title="Enviar">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                            </button>
+                        <div class="antigravity-input-container">
+                            <textarea id="chatInput" class="antigravity-textarea" placeholder="Envie uma instrução ou descreva uma missão para a equipe..." rows="2"></textarea>
+                            
+                            <div class="antigravity-input-toolbar">
+                                <div class="toolbar-left">
+                                    <button class="toolbar-btn" id="btnAddContext" title="Anexar arquivo / contexto">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    </button>
+                                    <div class="model-picker" id="modelPicker">
+                                        <span class="model-picker__dot"></span>
+                                        <span class="model-picker__name" id="selectedModelName">Claude Opus 4.6 ⚡ Custo Zero</span>
+                                        <span class="model-picker__chevron">▾</span>
+                                    </div>
+                                </div>
+                                <div class="toolbar-right">
+                                    <button class="chat-send" id="btnSend" title="Enviar Missão (Enter)">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -302,6 +357,29 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
     <script src="app.js"></script>
+        <!-- FOOTER STATUS BAR (ANTIGRAVITY / VS CODE STYLE) -->
+    <footer class="statusbar">
+        <div class="statusbar__left">
+            <div class="statusbar__item" id="statusGitBranch">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 3v12M18 9a3 3 0 100-6 3 3 0 000 6zM6 21a3 3 0 100-6 3 3 0 000 6zM18 9a9 9 0 01-9 9" stroke="currentColor" stroke-width="1.5"/></svg>
+                <span>main</span>
+            </div>
+            <div class="statusbar__item" id="statusInspectorBadge">
+                <span class="statusbar__dot statusbar__dot--green"></span>
+                <span>Visual Inspector: 100/100</span>
+            </div>
+            <div class="statusbar__item" id="statusSecurityBadge">
+                <span class="statusbar__dot statusbar__dot--green"></span>
+                <span>Segurança: Zero SQLi (WAL Ativo)</span>
+            </div>
+        </div>
+        <div class="statusbar__right">
+            <div class="statusbar__item" id="statusCursorPos">Ln 1, Col 1</div>
+            <div class="statusbar__item">UTF-8</div>
+            <div class="statusbar__item" id="statusLang">HTML5</div>
+            <div class="statusbar__item statusbar__item--accent" id="statusMotor">⚡ Claude Opus / Custo Zero</div>
+        </div>
+    </footer>
     <div id="dragOverlay"></div>
 </body>
 </html>

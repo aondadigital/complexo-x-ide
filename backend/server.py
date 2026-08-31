@@ -451,6 +451,34 @@ async def delete_fs_file(path: str):
         target_path.unlink()
     return {"ok": True, "path": path, "deleted": True}
 
+
+# --- Endpoint de Exportação ZIP do Projeto (1 Clique) ---
+@app.get("/api/project/export")
+async def export_project_zip(project_id: str = "default"):
+    import io
+    import zipfile
+    from fastapi.responses import StreamingResponse
+
+    target_dir = PROJECTS_DIR / project_id
+    if not target_dir.exists():
+        target_dir.mkdir(parents=True, exist_ok=True)
+        # Se vazio, coloca arquivos base
+        (target_dir / "index.html").write_text((FRONTEND_DIR / "index.html").read_text(encoding="utf-8"), encoding="utf-8")
+        (target_dir / "style.css").write_text((FRONTEND_DIR / "style.css").read_text(encoding="utf-8"), encoding="utf-8")
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for file_path in target_dir.rglob("*"):
+            if file_path.is_file() and not file_path.name.startswith("."):
+                zip_file.write(file_path, file_path.relative_to(target_dir))
+    
+    zip_buffer.seek(0)
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename=complexo-x-{project_id}.zip"}
+    )
+
 @app.post("/api/mission")
 async def execute_mission_pipeline(mission: MissionRequest):
     asyncio.create_task(run_parallel_pipeline(mission))

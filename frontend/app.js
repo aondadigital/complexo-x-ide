@@ -879,8 +879,9 @@ function initPanelToggles() {
 }
 
 
-// ---- WORKSPACE & FOLDER SELECTOR LOGIC (ANTIGRAVITY STYLE) ----
+// ---- WORKSPACE & FOLDER SELECTOR LOGIC (ANTIGRAVITY / VS CODE NATIVE) ----
 let currentWorkspacePath = 'D:/PROJETOS/IDE';
+let currentWorkspaceName = 'PROJETOS';
 
 async function initWorkspaceManager() {
     const wsFolderBtn = document.getElementById('wsFolderBtn');
@@ -889,31 +890,25 @@ async function initWorkspaceManager() {
     const wsEnvBtn = document.getElementById('wsEnvBtn');
     const wsEnvLabel = document.getElementById('wsEnvLabel');
 
+    // Click on folder pill or [+] opens folder picker directly
     if (wsFolderBtn) {
         wsFolderBtn.addEventListener('click', (e) => {
             if (e.target.id === 'wsCloseBtn') return;
-            document.getElementById('workspaceModal')?.classList.add('modal--open');
+            openWorkspacePicker();
         });
     }
 
     if (wsAddFolderBtn) {
         wsAddFolderBtn.addEventListener('click', () => {
-            document.getElementById('workspaceModal')?.classList.add('modal--open');
+            openWorkspacePicker();
         });
     }
 
+    // Close workspace button [x]
     if (wsCloseBtn) {
         wsCloseBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            try {
-                await fetch(`${API_BASE}/fs/workspace/close`, { method: 'POST' });
-                currentWorkspacePath = 'workspace';
-                updateWorkspaceUI('workspace (Padrão)');
-                await loadFileTree();
-                addChatMessage('Sistema', '📁', 'Pasta fechada. Retornado para o workspace padrão.', 'system');
-            } catch (err) {
-                updateWorkspaceUI('workspace');
-            }
+            closeActiveWorkspace();
         });
     }
 
@@ -921,17 +916,17 @@ async function initWorkspaceManager() {
         wsEnvBtn.addEventListener('click', () => {
             const isLocal = wsEnvLabel.textContent === 'Local';
             wsEnvLabel.textContent = isLocal ? 'VPS' : 'Local';
-            addChatMessage('Sistema', '💻', `Ambiente de trabalho alternado para **${wsEnvLabel.textContent}**.`, 'system');
         });
     }
 
-    // Fetch initial active workspace from backend
+    // Initial load from server
     try {
         const res = await fetch(`${API_BASE}/fs/workspaces`);
         if (res.ok) {
             const data = await res.json();
             if (data.active && data.active.name) {
                 currentWorkspacePath = data.active.path;
+                currentWorkspaceName = data.active.name;
                 updateWorkspaceUI(data.active.name);
             }
         }
@@ -941,8 +936,145 @@ async function initWorkspaceManager() {
 function updateWorkspaceUI(name) {
     const wsFolderName = document.getElementById('wsFolderName');
     const explorerRootName = document.getElementById('explorerRootName');
-    if (wsFolderName) wsFolderName.textContent = name;
-    if (explorerRootName) explorerRootName.textContent = name.toUpperCase();
+    const wsFolderBtn = document.getElementById('wsFolderBtn');
+
+    if (name) {
+        if (wsFolderName) wsFolderName.textContent = name;
+        if (explorerRootName) explorerRootName.textContent = name.toUpperCase();
+        if (wsFolderBtn) wsFolderBtn.style.display = 'inline-flex';
+    } else {
+        if (wsFolderName) wsFolderName.textContent = 'Sem Pasta';
+        if (explorerRootName) explorerRootName.textContent = 'NENHUMA PASTA';
+        if (wsFolderBtn) wsFolderBtn.style.display = 'none';
+    }
+}
+
+// Opens native browser folder picker or fallback modal directly
+window.openWorkspacePicker = async function() {
+    // 1. Tenta API Nativa do Navegador (Abre o Windows Explorer real)
+    if ('showDirectoryPicker' in window) {
+        try {
+            const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+            if (dirHandle && dirHandle.name) {
+                currentWorkspaceName = dirHandle.name;
+                currentWorkspacePath = dirHandle.name;
+                updateWorkspaceUI(dirHandle.name);
+                await loadLocalDirectoryHandle(dirHandle);
+                return;
+            }
+        } catch (err) {
+            // Se o usuário cancelou a janela nativa, não faz nada
+            if (err.name === 'AbortError') return;
+        }
+    }
+
+    // 2. Fallback: Modal de Escolha Rápida do Sistema
+    document.getElementById('workspaceModal')?.classList.add('modal--open');
+};
+
+async function loadLocalDirectoryHandle(dirHandle) {
+    const container = document.getElementById('fileTreeContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    async function scanHandle(handle, path = '') {
+        const entries = [];
+        for await (const entry of handle.values()) {
+            if (entry.name.startsWith('.')) continue;
+            const fullPath = path ? `${path}/${entry.name}` : entry.name;
+            if (entry.kind === 'directory') {
+                const children = await scanHandle(entry, fullPath);
+                entries.push({ name: entry.name, path: fullPath, is_dir: true, children, handle: entry });
+            } else {
+                entries.push({ name: entry.name, path: fullPath, is_dir: false, handle: entry });
+            }
+        }
+        return entries.sort((a, b) => (b.is_dir - a.is_dir) || a.name.localeCompare(b.name));
+    }
+
+    const tree = await scanHandle(dirHandle);
+    const fragment = document.createDocumentFragment();
+    tree.forEach(node => {
+        fragment.appendChild(renderLocalTreeNode(node));
+    });
+    container.appendChild(fragment);
+
+    // Abre o primeiro arquivo de texto automaticamente no editor
+    const firstFile = tree.find(n => !n.is_dir && (n.name.endsWith('.html') || n.name.endsWith('.py') || n.name.endsWith('.js') || n.name.endsWith('.css')));
+    if (firstFile) {
+        openLocalFileFromHandle(firstFile.handle, firstFile.name);
+    }
+}
+
+function renderLocalTreeNode(node) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'tree-node';
+
+    const item = document.createElement('div');
+    item.className = 'tree-item';
+
+    if (node.is_dir) {
+        item.innerHTML = `
+            <span class="tree-item__chevron tree-item__chevron--open">▶</span>
+            <span class="tree-item__icon">📂</span>
+            <span class="tree-item__name">${node.name}</span>
+        `;
+        const childrenContainer = document.createElement('div');
+        childrenContainer.className = 'tree-children';
+        if (node.children) {
+            node.children.forEach(c => childrenContainer.appendChild(renderLocalTreeNode(c)));
+        }
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            item.querySelector('.tree-item__chevron').classList.toggle('tree-item__chevron--open');
+            childrenContainer.classList.toggle('tree-children--collapsed');
+        });
+        wrapper.appendChild(item);
+        wrapper.appendChild(childrenContainer);
+    } else {
+        item.innerHTML = `
+            <span class="tree-item__chevron" style="opacity:0"></span>
+            <span class="tree-item__icon">${getFileIcon(node.name)}</span>
+            <span class="tree-item__name">${node.name}</span>
+        `;
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('tree-item--active'));
+            item.classList.add('tree-item--active');
+            openLocalFileFromHandle(node.handle, node.name);
+        });
+        wrapper.appendChild(item);
+    }
+    return wrapper;
+}
+
+async function openLocalFileFromHandle(fileHandle, filename) {
+    try {
+        const file = await fileHandle.getFile();
+        const content = await file.text();
+        let lang = 'plaintext';
+        if (filename.endsWith('.html')) lang = 'html';
+        else if (filename.endsWith('.css')) lang = 'css';
+        else if (filename.endsWith('.py')) lang = 'python';
+        else if (filename.endsWith('.js') || filename.endsWith('.ts')) lang = 'javascript';
+        else if (filename.endsWith('.json')) lang = 'json';
+        else if (filename.endsWith('.md')) lang = 'markdown';
+
+        state.files[filename] = { lang, content };
+        
+        let tab = document.querySelector(`.tab[data-file="${filename}"]`);
+        if (!tab) {
+            const tabsContainer = document.querySelector('.tabs');
+            const addBtn = document.querySelector('.tab--add');
+            tab = document.createElement('button');
+            tab.className = 'tab';
+            tab.dataset.file = filename;
+            tab.innerHTML = `<span class="tab__icon">${getFileIcon(filename)}</span> ${filename}`;
+            tab.addEventListener('click', () => switchFile(filename));
+            tabsContainer.insertBefore(tab, addBtn);
+        }
+        switchFile(filename);
+    } catch (e) {}
 }
 
 window.chooseWorkspace = async function(path) {
@@ -952,19 +1084,35 @@ window.chooseWorkspace = async function(path) {
     updateWorkspaceUI(name || path);
 
     try {
-        const res = await fetch(`${API_BASE}/fs/workspace/switch`, {
+        await fetch(`${API_BASE}/fs/workspace/switch`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ path: path })
         });
-        if (res.ok) {
-            const data = await res.json();
-            if (data.active) updateWorkspaceUI(data.active.name);
-        }
     } catch (e) {}
 
     await loadFileTree();
-    addChatMessage('Sistema', '📁', `Pasta de trabalho alterada para: **${path}**. Arquivos carregados no Explorer.`, 'system');
+};
+
+window.closeActiveWorkspace = async function() {
+    try {
+        await fetch(`${API_BASE}/fs/workspace/close`, { method: 'POST' });
+    } catch (e) {}
+
+    currentWorkspacePath = '';
+    currentWorkspaceName = '';
+    updateWorkspaceUI(null);
+
+    const container = document.getElementById('fileTreeContainer');
+    if (container) {
+        container.innerHTML = `
+            <div style="padding:28px 16px;text-align:center;color:var(--text-muted);">
+                <div style="font-size:32px;margin-bottom:12px;">📂</div>
+                <p style="font-size:12px;margin-bottom:16px;">Nenhuma pasta aberta no momento.</p>
+                <button class="btn btn--deploy" style="margin:0 auto;" onclick="openWorkspacePicker()">Abrir Pasta</button>
+            </div>
+        `;
+    }
 };
 
 window.openCustomWorkspace = function() {

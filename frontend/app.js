@@ -350,7 +350,7 @@ const state = {
 };
 
 let currentSessionId = 'session-1';
-let currentSessionTitle = 'Melhorias do Agente Antigravity';
+let currentSessionTitle = 'Missão Ativa';
 
 // ---- MONACO EDITOR INITIALIZATION ----
 function initMonaco() {

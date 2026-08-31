@@ -382,28 +382,29 @@ async def agent_task_seo(html: str) -> str:
 
 
 # --- Endpoints do Explorador de Arquivos & Árvore de Pastas (Sidebar #2) ---
-def get_dir_tree(directory: Path) -> List[Dict[str, Any]]:
+def get_dir_tree(directory: Path, depth: int = 0) -> List[Dict[str, Any]]:
     tree = []
+    if depth > 3:
+        return tree
     try:
         for item in sorted(directory.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
-            if item.name.startswith(".") or item.name in ["__pycache__", "venv", "node_modules", ".git"]:
+            if item.name.startswith(".") or item.name in ["__pycache__", "venv", "node_modules", ".git", "$RECYCLE.BIN"]:
                 continue
             
             node = {
                 "name": item.name,
-                "path": str(item.relative_to(BASE_DIR)).replace("\\", "/"),
+                "path": str(item).replace("\\", "/"),
                 "is_dir": item.is_dir(),
                 "size": item.stat().st_size if item.is_file() else 0
             }
             if item.is_dir():
-                node["children"] = get_dir_tree(item)
+                node["children"] = get_dir_tree(item, depth + 1)
             else:
                 node["ext"] = item.suffix.lower()
             tree.append(node)
     except Exception:
         pass
     return tree
-
 
 # --- Endpoints de Troca e Fechamento de Workspace / Pastas ---
 ACTIVE_WORKSPACE = {"path": str(BASE_DIR), "name": BASE_DIR.name}

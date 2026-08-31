@@ -236,28 +236,64 @@ body.antigravity-theme {
 }
 
 .explorer-header {
-    height: 36px;
+    height: 35px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 12px;
+    padding: 0 10px;
     background: var(--bg-sidebar);
     border-bottom: 1px solid var(--border-subtle);
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted);
+    user-select: none;
 }
-.explorer-badge { font-size: 10px; color: var(--text-dim); }
-.explorer-header-actions { display: flex; gap: 4px; }
+
+.explorer-title-container {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    max-width: 105px;
+}
+
+.explorer-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.explorer-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+}
+
 .explorer-btn {
     background: transparent;
     border: none;
     color: var(--text-dim);
     cursor: pointer;
     font-size: 11px;
-    padding: 2px 4px;
+    padding: 3px 5px;
+    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
 }
-.explorer-btn:hover { color: var(--text-main); }
+
+.explorer-btn:hover {
+    color: var(--text-main);
+    background: var(--bg-hover);
+}
+
+#btnCloseFolderAction:hover {
+    color: #ef4444 !important;
+    background: rgba(239, 68, 68, 0.15) !important;
+}
 .explorer-body { flex: 1; overflow-y: auto; padding: 4px 0; }
 
 .tree-item {

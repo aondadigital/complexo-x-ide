@@ -121,11 +121,11 @@ function removeAgentWorking() {
     if (el) el.remove();
 }
 
-function addAgentResponse(htmlContent, thoughtText = null, commandsCount = null) {
+function addAgentResponse(rawText, thoughtText = null, commandsCount = null, artifactData = null) {
     removeAgentWorking();
     const feed = document.getElementById('chatMessages');
     const container = document.createElement('div');
-    container.style.cssText = 'display:flex;flex-direction:column;gap:10px;margin-bottom:20px;';
+    container.style.cssText = 'display:flex;flex-direction:column;gap:10px;margin-bottom:24px;';
 
     if (thoughtText) {
         const thought = document.createElement('div');
@@ -143,8 +143,24 @@ function addAgentResponse(htmlContent, thoughtText = null, commandsCount = null)
 
     const responseCard = document.createElement('div');
     responseCard.className = 'agent-response-text';
-    responseCard.innerHTML = htmlContent;
+    responseCard.innerHTML = renderAntigravityMarkdown(rawText);
     container.appendChild(responseCard);
+
+    if (artifactData) {
+        const artEl = document.createElement('div');
+        artEl.innerHTML = createArtifactCard(artifactData.title || 'Walkthrough', artifactData.summary || 'Resumo do trabalho', artifactData.file);
+        container.appendChild(artEl);
+    }
+
+    // Action bar (Copy, Like, Dislike)
+    const actionBar = document.createElement('div');
+    actionBar.className = 'agent-action-bar';
+    actionBar.innerHTML = `
+        <button class="action-bar-btn" title="Copiar resposta" onclick="navigator.clipboard.writeText(\`${escapeHtml(rawText)}\`)">📋</button>
+        <button class="action-bar-btn" title="Útil">👍</button>
+        <button class="action-bar-btn" title="Não útil">👎</button>
+    `;
+    container.appendChild(actionBar);
 
     feed.appendChild(container);
     feed.scrollTop = feed.scrollHeight;
@@ -175,8 +191,38 @@ async function handleSendMessage() {
         // Fallback local simulation if server offline
         setTimeout(() => {
             addAgentResponse(
-                `<p>Missão recebida e executada pela equipe de especialistas:</p>
-                 <ul style="margin:8px 0 8px 20px;color:var(--text-secondary);font-size:13px;">
+    `### 🧠 O que está ativo dentro do Orquestrador:
+
+1. 👨‍💻 **Programação & Arquitetura de Elite:**
+   • `skill_padroes_de_programacao_elite.md`
+   • `skill_zero_ghost_verifier.md` (Código pedagógico real, sem stubs/mocks)
+   • `skill_ast_property_testing_self_healing.md` (Auto-cura e correção de código)
+   • `skill_crdt_realtime_distributed_sync_2026.md`
+
+2. 🛡️ **Blindagem de Banco & Defesa Cibernética:**
+   • `skill_ciberseguranca_defesa_agentes_2026.md`
+   • `skill_mythos_glasswing_defensive_mesh_2026.md`
+   • `skill_zero_knowledge_proofs_cryptography_2026.md`
+
+3. 🎨 **Design System & UI/UX State-of-the-Art:**
+   • `skill_design_system_ui_ux_2026.md`
+   • `skill_replit_agent4_studio_canvas_2026.md`
+   • `skill_3d_webgpu_digital_twins_2026.md`
+
+4. 📢 **Neuromarketing, Vendas & E-Commerce:**
+   • `skill_neuromarketing_neurociencia_vendas_2026.md`
+   • `skill_whatsapp_commerce_sales_agent_2026.md`
+   • `skill_ecommerce_marketplace_compliance_juridico.md`
+
+5. 🔍 **SEO & GEO AI Overviews:**
+   • `skill_geo_ai_overviews_seo_2026.md`
+   • `skill_colbert_graphrag_hybrid_retriever_2026.md`
+
+O orquestrador do **Complexo-X IDE** agora carrega esse arsenal automaticamente para guiar cada especialista em todas as missões, mantendo o **Projeto Mãe** completamente protegido e intacto!`,
+    "Thought for 4s",
+    "4 commands",
+    { title: "Walkthrough", summary: "Walkthrough atualizado: Integração completa do pacote Super Antigravity (74 skills cognitivas de elite) no núcleo orquestrador do Complexo-X IDE.", file: "walkthrough.md" }
+);font-size:13px;">
                      <li><strong>Designer:</strong> Design Tokens e CSS responsivo aplicados.</li>
                      <li><strong>Programador:</strong> Estrutura HTML5 e endpoints criados.</li>
                      <li><strong>Segurança:</strong> Zero SQLi validado com SQLite WAL.</li>

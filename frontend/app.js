@@ -1,5 +1,5 @@
 /* ============================================
-   COMPLEXO-X IDE — Core Engine (v3.8)
+   COMPLEXO-X IDE — Core Engine (v3.9)
    complexo-x.com.br/ide
    ============================================ */
 
@@ -538,131 +538,9 @@ function initExplorerActions() {
     });
 }
 
-// ---- SELETOR NATIVO DE PASTAS DO WINDOWS (webkitdirectory) ----
-window.handleNativeFolderSelect = function(event) {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    const container = document.getElementById('fileTreeContainer');
-    if (!container) return;
-    container.innerHTML = '';
-
-    const rootName = files[0].webkitRelativePath.split('/')[0] || 'Pasta Selecionada';
-    state.currentWorkspaceName = rootName;
-
-    // Organiza a lista de arquivos selecionados nativamente
-    const fileMap = {};
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const parts = file.webkitRelativePath.split('/');
-        parts.shift(); // remove root folder name
-        if (parts.length === 0) continue;
-
-        const fileName = parts.pop();
-        let current = fileMap;
-        parts.forEach(dir => {
-            if (!current[dir]) current[dir] = { _isDir: true, _children: {} };
-            current = current[dir]._children;
-        });
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            state.files[fileName] = { lang: getFileLanguage(fileName), content: e.target.result };
-        };
-        reader.readAsText(file);
-
-        current[fileName] = { _isDir: false, _name: fileName, _file: file };
-    }
-
-    const fragment = document.createDocumentFragment();
-    renderNativeMap(fileMap, fragment);
-    container.appendChild(fragment);
-};
-
-function getFileLanguage(name) {
-    if (name.endsWith('.html')) return 'html';
-    if (name.endsWith('.css')) return 'css';
-    if (name.endsWith('.js')) return 'javascript';
-    if (name.endsWith('.py')) return 'python';
-    if (name.endsWith('.json')) return 'json';
-    return 'plaintext';
-}
-
-function renderNativeMap(mapObj, parentEl) {
-    Object.keys(mapObj).sort().forEach(key => {
-        const itemObj = mapObj[key];
-        const wrapper = document.createElement('div');
-        wrapper.className = 'tree-node';
-
-        const item = document.createElement('div');
-        item.className = 'tree-item';
-
-        if (itemObj._isDir) {
-            item.innerHTML = `
-                <span class="tree-item__chevron" style="font-size:9px;color:var(--text-dim);margin-right:2px;display:inline-block;transition:transform 0.15s;">▶</span>
-                <span style="font-size:13px;margin-right:4px;">📂</span>
-                <span class="tree-item__name" style="color:var(--text-main);font-weight:500;">${escapeHtml(key)}</span>
-            `;
-            const childrenContainer = document.createElement('div');
-            childrenContainer.className = 'tree-children';
-            childrenContainer.style.cssText = 'margin-left:14px;border-left:1px solid var(--border-subtle);padding-left:2px;display:none;';
-
-            renderNativeMap(itemObj._children, childrenContainer);
-
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const chevron = item.querySelector('.tree-item__chevron');
-                const isClosed = childrenContainer.style.display === 'none';
-                childrenContainer.style.display = isClosed ? 'block' : 'none';
-                if (chevron) chevron.style.transform = isClosed ? 'rotate(90deg)' : 'rotate(0deg)';
-            });
-
-            wrapper.appendChild(item);
-            wrapper.appendChild(childrenContainer);
-        } else {
-            const fileName = itemObj._name || key;
-            item.innerHTML = `
-                <span style="display:inline-block;width:11px;"></span>
-                <span style="font-size:13px;margin-right:4px;">${getFileIcon(fileName)}</span>
-                <span class="tree-item__name">${escapeHtml(fileName)}</span>
-            `;
-
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-                document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('tree-item--active'));
-                item.classList.add('tree-item--active');
-                if (itemObj._file) {
-                    const reader = new FileReader();
-                    reader.onload = function(ev) {
-                        state.files[fileName] = { lang: getFileLanguage(fileName), content: ev.target.result };
-                        
-                        const viewPreview = document.getElementById('viewPreview');
-                        const viewEditor = document.getElementById('viewEditor');
-                        if (viewPreview) viewPreview.style.display = 'none';
-                        if (viewEditor) viewEditor.style.display = 'block';
-                        state.activeView = 'editor';
-                        switchFile(fileName);
-                    };
-                    reader.readAsText(itemObj._file);
-                } else {
-                    switchFile(fileName);
-                }
-            });
-
-            wrapper.appendChild(item);
-        }
-        parentEl.appendChild(wrapper);
-    });
-}
-
 function openFolderDialog() {
-    const input = document.getElementById('folderSelectorInput');
-    if (input) {
-        input.click();
-    } else {
-        const modal = document.getElementById('workspaceModal');
-        if (modal) modal.classList.add('modal--open');
-    }
+    const modal = document.getElementById('workspaceModal');
+    if (modal) modal.classList.add('modal--open');
 }
 
 function closeFolder() {

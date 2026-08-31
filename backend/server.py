@@ -458,34 +458,50 @@ async def get_file_tree(scope: str = "workspace"):
 
 @app.get("/api/fs/file")
 async def read_fs_file(path: str):
-    file_path = BASE_DIR / path.lstrip("/")
+    root = Path(ACTIVE_WORKSPACE["path"]) if ACTIVE_WORKSPACE.get("path") else BASE_DIR
+    file_path = root / path.lstrip("/")
     if not file_path.exists() or file_path.is_dir():
-        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+        file_path = BASE_DIR / path.lstrip("/")
+        if not file_path.exists() or file_path.is_dir():
+            raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+    
     try:
-        content = file_path.read_text(encoding="utf-8-sig")
-        return {"path": path, "content": content, "size": len(content)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-class CreateFileRequest(BaseModel):
-    path: str
-    content: str = ""
+        content = file_path.read_text(encoding="utf-8")
+    except Exception:
+        content = file_path.read_text(encoding="latin-1")
+        
+    ext = file_path.suffix.lower()
+    lang_map = {
+        ".html": "html", ".htm": "html",
+        ".css": "css",
+        ".js": "javascript", ".jsx": "javascript", ".ts": "typescript", ".tsx": "typescript",
+        ".py": "python",
+        ".json": "json",
+        ".md": "markdown",
+        ".sql": "sql",
+        ".sh": "shell", ".bat": "bat", ".ps1": "powershell"
+    }
+    return {
+        "name": file_path.name,
+        "path": path,
+        "lang": lang_map.get(ext, "plaintext"),
+        "content": content
+    }
 
 @app.post("/api/fs/file")
 async def save_fs_file(payload: CreateFileRequest):
-    file_path = BASE_DIR / payload.path.lstrip("/")
+    root = Path(ACTIVE_WORKSPACE["path"]) if ACTIVE_WORKSPACE.get("path") else BASE_DIR
+    file_path = root / payload.path.lstrip("/")
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text(payload.content, encoding="utf-8")
-    return {"ok": True, "path": payload.path, "saved": True}
-
-class CreateFolderRequest(BaseModel):
-    path: str
+    return {"ok": True, "path": payload.path}
 
 @app.post("/api/fs/folder")
 async def create_fs_folder(payload: CreateFolderRequest):
-    folder_path = BASE_DIR / payload.path.lstrip("/")
+    root = Path(ACTIVE_WORKSPACE["path"]) if ACTIVE_WORKSPACE.get("path") else BASE_DIR
+    folder_path = root / payload.path.lstrip("/")
     folder_path.mkdir(parents=True, exist_ok=True)
-    return {"ok": True, "path": payload.path, "created": True}
+    return {"ok": True, "path": payload.path}
 
 @app.delete("/api/fs/file")
 async def delete_fs_file(path: str):

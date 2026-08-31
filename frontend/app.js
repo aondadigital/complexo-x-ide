@@ -549,6 +549,7 @@ window.openCustomWorkspace = function() {
     }
 };
 
+// ---- FULL INTERACTIVE EXPLORER & TREE ENGINE ----
 async function loadFileTree() {
     const container = document.getElementById('fileTreeContainer');
     if (!container) return;
@@ -557,10 +558,17 @@ async function loadFileTree() {
         if (!res.ok) throw new Error('API indisponível');
         const data = await res.json();
         container.innerHTML = '';
-        if (data.tree) {
+        if (data.root) {
+            updateFolderUI(data.root);
+        }
+        if (data.tree && data.tree.length > 0) {
+            const fragment = document.createDocumentFragment();
             data.tree.forEach(node => {
-                container.appendChild(renderTreeNode(node));
+                fragment.appendChild(renderTreeNode(node));
             });
+            container.appendChild(fragment);
+        } else {
+            container.innerHTML = '<div style="padding:16px 12px;font-size:12px;color:var(--text-dim);text-align:center;">Pasta vazia</div>';
         }
     } catch (e) {
         container.innerHTML = `
@@ -572,13 +580,155 @@ async function loadFileTree() {
 }
 
 function renderTreeNode(node) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'tree-node';
+
     const item = document.createElement('div');
     item.className = 'tree-item';
-    item.innerHTML = `${node.is_dir ? '📂' : '📄'} ${escapeHtml(node.name)}`;
-    if (!node.is_dir) {
-        item.onclick = () => switchFile(node.name);
+
+    if (node.is_dir) {
+        item.innerHTML = `
+            <span class="tree-item__chevron tree-item__chevron--open" style="font-size:9px;color:var(--text-dim);margin-right:2px;display:inline-block;transition:transform 0.15s;">▶</span>
+            <span style="font-size:13px;margin-right:4px;">📂</span>
+            <span class="tree-item__name" style="color:var(--text-main);font-weight:500;">${escapeHtml(node.name)}</span>
+        `;
+        
+        const childrenContainer = document.createElement('div');
+        childrenContainer.className = 'tree-children';
+        childrenContainer.style.cssText = 'margin-left:14px;border-left:1px solid var(--border-subtle);padding-left:2px;';
+
+        if (node.children && node.children.length > 0) {
+            node.children.forEach(child => {
+                childrenContainer.appendChild(renderTreeNode(child));
+            });
+        } else {
+            childrenContainer.innerHTML = '<div style="padding:2px 10px;font-size:11px;color:var(--text-dim);">Vazia</div>';
+        }
+
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const chevron = item.querySelector('.tree-item__chevron');
+            const isClosed = childrenContainer.style.display === 'none';
+            childrenContainer.style.display = isClosed ? 'block' : 'none';
+            if (chevron) chevron.style.transform = isClosed ? 'rotate(90deg)' : 'rotate(0deg)';
+        });
+
+        wrapper.appendChild(item);
+        wrapper.appendChild(childrenContainer);
+    } else {
+        item.innerHTML = `
+            <span style="display:inline-block;width:11px;"></span>
+            <span style="font-size:13px;margin-right:4px;">${getFileIcon(node.name)}</span>
+            <span class="tree-item__name">${escapeHtml(node.name)}</span>
+        `;
+
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('tree-item--active'));
+            item.classList.add('tree-item--active');
+            openFileFromPath(node.path || node.name, node.name);
+        });
+
+        wrapper.appendChild(item);
     }
-    return item;
+    return wrapper;
+}
+
+function getFileIcon(name) {
+    if (!name) return '📄';
+    if (name.endsWith('.html') || name.endsWith('.htm')) return '🌐';
+    if (name.endsWith('.css')) return '🎨';
+    if (name.endsWith('.js') || name.endsWith('.ts')) return '⚡';
+    if (name.endsWith('.py')) return '🐍';
+    if (name.endsWith('.json')) return '⚙️';
+    if (name.endsWith('.md')) return '📝';
+    if (name.endsWith('.sql') || name.endsWith('.db')) return '🗄️';
+    return '📄';
+}
+
+async function openFileFromPath(filePath, fileName) {
+    try {
+        const res = await fetch(`${API_BASE}/fs/file?path=${encodeURIComponent(filePath)}`);
+        if (res.ok) {
+            const data = await res.json();
+            state.files[fileName] = { lang: data.lang, content: data.content };
+            
+            // Switch to editor view
+            const viewPreview = document.getElementById('viewPreview');
+            const viewEditor = document.getElementById('viewEditor');
+            const viewDiff = document.getElementById('viewDiff');
+            if (viewPreview) viewPreview.style.display = 'none';
+            if (viewDiff) viewDiff.style.display = 'none';
+            if (viewEditor) viewEditor.style.display = 'block';
+            state.activeView = 'editor';
+
+            // Add or activate workspace tab
+            let tab = document.querySelector(`.ws-tab[data-file="${fileName}"]`);
+            if (!tab) {
+                const tabsList = document.getElementById('workspaceTabsList');
+                if (tabsList) {
+                    tab = document.createElement('button');
+                    tab.className = 'ws-tab ws-tab--active';
+                    tab.dataset.file = fileName;
+                    tab.innerHTML = `<span class="tab-icon">${getFileIcon(fileName)}</span> ${escapeHtml(fileName)} <span class="tab-close" onclick="closeWorkspaceTab(event, '${fileName}')">✕</span>`;
+                    tab.onclick = () => switchFile(fileName);
+                    document.querySelectorAll('.ws-tab').forEach(t => t.classList.remove('ws-tab--active'));
+                    tabsList.appendChild(tab);
+                }
+            } else {
+                document.querySelectorAll('.ws-tab').forEach(t => t.classList.remove('ws-tab--active'));
+                tab.classList.add('ws-tab--active');
+            }
+
+            switchFile(fileName);
+        }
+    } catch (e) {
+        switchFile(fileName);
+    }
+}
+
+window.closeWorkspaceTab = function(e, fileName) {
+    e.stopPropagation();
+    const tab = document.querySelector(`.ws-tab[data-file="${fileName}"]`);
+    if (tab) tab.remove();
+    const firstTab = document.querySelector('.ws-tab');
+    if (firstTab) firstTab.click();
+};
+
+function initExplorerActions() {
+    // Button New File [+]
+    document.getElementById('btnNewFile')?.addEventListener('click', async () => {
+        const fileName = prompt('Nome do novo arquivo (ex: app.py, checkout.html):');
+        if (!fileName) return;
+        try {
+            await fetch(`${API_BASE}/fs/file`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: fileName, content: '# Novo arquivo\n' })
+            });
+            await loadFileTree();
+            openFileFromPath(fileName, fileName);
+        } catch (e) {}
+    });
+
+    // Button New Folder [📂]
+    document.getElementById('btnNewFolder')?.addEventListener('click', async () => {
+        const folderName = prompt('Nome da nova pasta (ex: components, routes):');
+        if (!folderName) return;
+        try {
+            await fetch(`${API_BASE}/fs/folder`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: folderName })
+            });
+            await loadFileTree();
+        } catch (e) {}
+    });
+
+    // Button Refresh [🔄]
+    document.getElementById('btnRefreshTree')?.addEventListener('click', () => {
+        loadFileTree();
+    });
 }
 
 // ---- CHAT SESSIONS & CONVERSATION CONTINUITY ----
@@ -757,6 +907,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initResizers();
     initRail();
     initFolderPicker();
+    initExplorerActions();
     initChatSessionsManager();
     initModelPicker();
     initWebSocket();

@@ -1,4 +1,16 @@
-﻿"""
+﻿SUPER_ANTIGRAVITY_DIR = Path("D:/SUPER_ANTIGRAVITY/SKILLS_SISTEMA") if os.path.exists("D:/SUPER_ANTIGRAVITY/SKILLS_SISTEMA") else (BASE_DIR / "skills")
+
+def load_super_skills() -> Dict[str, str]:
+    skills = {}
+    if SUPER_ANTIGRAVITY_DIR.exists():
+        for skill_file in SUPER_ANTIGRAVITY_DIR.glob("*.md"):
+            try:
+                skills[skill_file.stem] = skill_file.read_text(encoding="utf-8")
+            except Exception:
+                pass
+    return skills
+
+"""
 Complexo-X IDE — Agente-X Dedicated Orchestrator Engine (v3.0)
 Instância autônoma e isolada do Agente-X para orquestração da equipe de especialistas.
 Garante total isolamento e preservação do Projeto Mãe.
@@ -31,6 +43,7 @@ class AgentXOrchestrator:
     def __init__(self, broadcast_fn=None):
         self.broadcast = broadcast_fn or self._noop_broadcast
         self.souls = self._load_all_souls()
+        self.super_skills = load_super_skills()
 
     async def _noop_broadcast(self, msg: Dict[str, Any]):
         pass

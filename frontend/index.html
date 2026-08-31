@@ -73,11 +73,11 @@
         </aside>
 
         <!-- MAIN CONTENT -->
-        <main class="main">
+        <main class="main" id="mainContainer">
             <!-- TOP ROW: Editor + Preview -->
-            <div class="main__top">
+            <div class="main__top" id="topRow">
                 <!-- CODE EDITOR -->
-                <section class="panel panel--editor">
+                <section class="panel panel--editor" id="panelEditor">
                     <div class="panel__header">
                         <div class="tabs">
                             <button class="tab tab--active" data-file="index.html">
@@ -97,8 +97,11 @@
                     </div>
                 </section>
 
+                <!-- RESIZER VERTICAL TOP -->
+                <div class="resizer resizer--v" id="resizerVTop" title="Arraste para redimensionar painéis"></div>
+
                 <!-- LIVE PREVIEW -->
-                <section class="panel panel--preview">
+                <section class="panel panel--preview" id="panelPreview">
                     <div class="panel__header">
                         <div class="preview-controls">
                             <button class="preview-btn" id="btnRefresh" title="Recarregar">
@@ -109,7 +112,7 @@
                                 <button class="device-btn" data-device="mobile">Mobile</button>
                             </div>
                         </div>
-                        <span class="panel__title">Preview</span>
+                        <span class="panel__title">Preview ao Vivo</span>
                     </div>
                     <div class="panel__body preview-body">
                         <iframe id="previewFrame" class="preview-iframe" srcdoc="<html><body style='background:#0f1117;color:#8b8fa3;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif'><p style='text-align:center'>Aguardando construção...<br><small style='opacity:0.5'>Os agentes vão construir aqui</small></p></body></html>"></iframe>
@@ -117,10 +120,13 @@
                 </section>
             </div>
 
+            <!-- RESIZER HORIZONTAL MAIN -->
+            <div class="resizer resizer--h" id="resizerH" title="Arraste para redimensionar altura dos painéis"></div>
+
             <!-- BOTTOM ROW: Chat + Agent Dashboard -->
-            <div class="main__bottom">
+            <div class="main__bottom" id="bottomRow">
                 <!-- CHAT -->
-                <section class="panel panel--chat">
+                <section class="panel panel--chat" id="panelChat">
                     <div class="panel__header">
                         <span class="panel__title">💬 Chat da Missão</span>
                         <button class="btn btn--sm" id="btnClearChat">Limpar</button>
@@ -147,8 +153,11 @@
                     </div>
                 </section>
 
+                <!-- RESIZER VERTICAL BOTTOM -->
+                <div class="resizer resizer--v" id="resizerVBottom" title="Arraste para redimensionar chat e agentes"></div>
+
                 <!-- AGENT DASHBOARD -->
-                <section class="panel panel--agents">
+                <section class="panel panel--agents" id="panelAgents">
                     <div class="panel__header">
                         <span class="panel__title">🤖 Equipe de Agentes</span>
                         <span class="agents-count" id="agentsCount">0/6 ativos</span>
@@ -190,7 +199,7 @@
                             <div class="agent-card__progress"><div class="progress-bar" style="width:0%"></div></div>
                             <p class="agent-card__task">Aguardando missão...</p>
                         </div>
-                                                <div class="agent-card" id="agent-seguranca">
+                        <div class="agent-card" id="agent-seguranca">
                             <div class="agent-card__header">
                                 <span class="agent-card__emoji">🛡️</span>
                                 <span class="agent-card__name">Segurança</span>

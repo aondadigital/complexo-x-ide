@@ -308,6 +308,143 @@ function closeModal(id) {
 }
 
 // ---- EVENT LISTENERS ----
+
+// ---- MOUSE DRAGGABLE RESIZERS (HORIZONTAL & VERTICAL) ----
+function initResizers() {
+    // 1. Resizer Vertical Top (Editor <-> Preview)
+    const resizerVTop = document.getElementById('resizerVTop');
+    const panelEditor = document.getElementById('panelEditor');
+    const panelPreview = document.getElementById('panelPreview');
+    const topRow = document.getElementById('topRow');
+
+    if (resizerVTop && panelEditor && panelPreview && topRow) {
+        let isDraggingVTop = false;
+
+        resizerVTop.addEventListener('mousedown', (e) => {
+            isDraggingVTop = true;
+            document.body.classList.add('is-resizing');
+            resizerVTop.classList.add('resizer--dragging');
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDraggingVTop) return;
+            const containerRect = topRow.getBoundingClientRect();
+            const offsetLeft = e.clientX - containerRect.left;
+            const percentage = (offsetLeft / containerRect.width) * 100;
+
+            if (percentage > 15 && percentage < 85) {
+                panelEditor.style.flex = `0 0 ${percentage}%`;
+                panelPreview.style.flex = `1 1 ${100 - percentage}%`;
+                if (state.monacoEditor) state.monacoEditor.layout();
+                localStorage.setItem('cx_split_v_top', percentage);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDraggingVTop) {
+                isDraggingVTop = false;
+                document.body.classList.remove('is-resizing');
+                resizerVTop.classList.remove('resizer--dragging');
+                if (state.monacoEditor) state.monacoEditor.layout();
+            }
+        });
+    }
+
+    // 2. Resizer Horizontal Main (Top Row <-> Bottom Row)
+    const resizerH = document.getElementById('resizerH');
+    const bottomRow = document.getElementById('bottomRow');
+    const mainContainer = document.getElementById('mainContainer');
+
+    if (resizerH && topRow && bottomRow && mainContainer) {
+        let isDraggingH = false;
+
+        resizerH.addEventListener('mousedown', (e) => {
+            isDraggingH = true;
+            document.body.classList.add('is-resizing');
+            resizerH.classList.add('resizer--dragging');
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDraggingH) return;
+            const containerRect = mainContainer.getBoundingClientRect();
+            const offsetTop = e.clientY - containerRect.top;
+            const percentage = (offsetTop / containerRect.height) * 100;
+
+            if (percentage > 20 && percentage < 80) {
+                topRow.style.flex = `0 0 ${percentage}%`;
+                bottomRow.style.height = `${100 - percentage}%`;
+                bottomRow.style.flex = `0 0 ${100 - percentage}%`;
+                if (state.monacoEditor) state.monacoEditor.layout();
+                localStorage.setItem('cx_split_h', percentage);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDraggingH) {
+                isDraggingH = false;
+                document.body.classList.remove('is-resizing');
+                resizerH.classList.remove('resizer--dragging');
+                if (state.monacoEditor) state.monacoEditor.layout();
+            }
+        });
+    }
+
+    // 3. Resizer Vertical Bottom (Chat <-> Agents)
+    const resizerVBottom = document.getElementById('resizerVBottom');
+    const panelChat = document.getElementById('panelChat');
+    const panelAgents = document.getElementById('panelAgents');
+
+    if (resizerVBottom && panelChat && panelAgents && bottomRow) {
+        let isDraggingVBottom = false;
+
+        resizerVBottom.addEventListener('mousedown', (e) => {
+            isDraggingVBottom = true;
+            document.body.classList.add('is-resizing');
+            resizerVBottom.classList.add('resizer--dragging');
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDraggingVBottom) return;
+            const containerRect = bottomRow.getBoundingClientRect();
+            const offsetLeft = e.clientX - containerRect.left;
+            const percentage = (offsetLeft / containerRect.width) * 100;
+
+            if (percentage > 20 && percentage < 80) {
+                panelChat.style.flex = `0 0 ${percentage}%`;
+                panelAgents.style.flex = `1 1 ${100 - percentage}%`;
+                localStorage.setItem('cx_split_v_bottom', percentage);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDraggingVBottom) {
+                isDraggingVBottom = false;
+                document.body.classList.remove('is-resizing');
+                resizerVBottom.classList.remove('resizer--dragging');
+            }
+        });
+    }
+
+    // Restore saved split sizes
+    const savedVTop = localStorage.getItem('cx_split_v_top');
+    if (savedVTop && panelEditor && panelPreview) {
+        panelEditor.style.flex = `0 0 ${savedVTop}%`;
+        panelPreview.style.flex = `1 1 ${100 - savedVTop}%`;
+    }
+
+    const savedH = localStorage.getItem('cx_split_h');
+    if (savedH && topRow && bottomRow) {
+        topRow.style.flex = `0 0 ${savedH}%`;
+        bottomRow.style.height = `${100 - savedH}%`;
+        bottomRow.style.flex = `0 0 ${100 - savedH}%`;
+    }
+
+    const savedVBottom = localStorage.getItem('cx_split_v_bottom');
+    if (savedVBottom && panelChat && panelAgents) {
+        panelChat.style.flex = `0 0 ${savedVBottom}%`;
+        panelAgents.style.flex = `1 1 ${100 - savedVBottom}%`;
+    }
+}
 function initEvents() {
     document.querySelectorAll('.tab[data-file]').forEach(tab => {
         tab.addEventListener('click', () => switchFile(tab.dataset.file));
@@ -350,6 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initSidebar();
     initDeviceToggle();
     initEvents();
+    initResizers();
     loadTemplates();
     initWebSocket();
     Object.keys(state.agents).forEach(renderAgentCard);

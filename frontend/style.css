@@ -1,4 +1,4 @@
-/* ============================================
+﻿/* ============================================
    COMPLEXO-X IDE — Design System & Styles
    complexo-x.com.br/ide
    ============================================ */
@@ -811,4 +811,75 @@ body {
     animation: shimmer 2s infinite linear;
     background: linear-gradient(90deg, var(--accent-primary), var(--accent-cyan), var(--accent-primary));
     background-size: 200% 100%;
+}
+
+/* ============================================
+   RESIZABLE SPLITTERS & HANDLERS (MOUSE DRAG)
+   ============================================ */
+.resizer {
+    background: var(--border-subtle);
+    position: relative;
+    z-index: 50;
+    transition: background var(--transition-fast), box-shadow var(--transition-fast);
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.resizer:hover, .resizer--dragging {
+    background: var(--accent-primary) !important;
+    box-shadow: 0 0 12px var(--accent-primary-glow);
+}
+
+.resizer--v {
+    width: 6px;
+    cursor: col-resize;
+    height: 100%;
+}
+
+.resizer--v::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 24px;
+    background: var(--text-muted);
+    border-radius: 1px;
+    transition: background var(--transition-fast);
+}
+
+.resizer--v:hover::after, .resizer--dragging::after {
+    background: white;
+}
+
+.resizer--h {
+    height: 6px;
+    cursor: row-resize;
+    width: 100%;
+}
+
+.resizer--h::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 2px;
+    background: var(--text-muted);
+    border-radius: 1px;
+    transition: background var(--transition-fast);
+}
+
+.resizer--h:hover::after, .resizer--dragging::after {
+    background: white;
+}
+
+/* Previne seleção de texto ou perda de foco no iframe durante drag */
+body.is-resizing {
+    user-select: none !important;
+}
+body.is-resizing iframe {
+    pointer-events: none !important;
 }

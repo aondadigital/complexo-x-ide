@@ -407,7 +407,7 @@ def get_dir_tree(directory: Path, depth: int = 0) -> List[Dict[str, Any]]:
     return tree
 
 # --- Endpoints de Troca e Fechamento de Workspace / Pastas ---
-ACTIVE_WORKSPACE = {"path": str(BASE_DIR), "name": BASE_DIR.name}
+ACTIVE_WORKSPACE = {"path": str(BASE_DIR / "workspace" / "default").replace("\\", "/"), "name": "workspace"}
 
 @app.get("/api/fs/workspaces")
 async def list_recent_workspaces():
@@ -461,10 +461,10 @@ async def get_file_tree(path: Optional[str] = None):
     if path:
         target_dir = Path(path)
     else:
-        target_dir = Path(ACTIVE_WORKSPACE["path"]) if ACTIVE_WORKSPACE.get("path") else BASE_DIR
+        target_dir = Path(ACTIVE_WORKSPACE["path"]) if ACTIVE_WORKSPACE.get("path") else (BASE_DIR / "workspace" / "default")
 
     if not target_dir.exists():
-        target_dir = BASE_DIR
+        target_dir.mkdir(parents=True, exist_ok=True)
         
     return {
         "root": target_dir.name or str(target_dir),

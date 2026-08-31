@@ -1,332 +1,5 @@
-﻿
-// ---- WIRED TOPBAR MENUS & ACTIONS ----
-window.toggleMenu = function(menuId) {
-    document.querySelectorAll('.dropdown-content').forEach(d => {
-        if (d.id !== menuId) d.classList.remove('show');
-    });
-    document.getElementById(menuId)?.classList.toggle('show');
-};
-
-window.addEventListener('click', (e) => {
-    if (!e.target.matches('.menu-btn')) {
-        document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
-    }
-});
-
-window.triggerNewFile = function() {
-    const fileName = prompt('Nome do novo arquivo (ex: app.py, checkout.html):');
-    if (!fileName) return;
-    state.files[fileName] = { lang: 'plaintext', content: '' };
-    switchFile(fileName);
-    loadFileTree();
-};
-
-window.triggerNewFolder = function() {
-    const folderName = prompt('Nome da nova pasta:');
-    if (!folderName) return;
-    fetch(`${API_BASE}/fs/folder`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: folderName })
-    }).then(() => loadFileTree());
-};
-
-window.triggerSaveFile = async function() {
-    if (!state.activeFile || !state.files[state.activeFile]) return;
-    const content = state.monacoEditor ? state.monacoEditor.getValue() : state.files[state.activeFile].content;
-    try {
-        await fetch(`${API_BASE}/fs/file`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: state.activeFile, content: content })
-        });
-        const statusCursor = document.getElementById('statusCursorPos');
-        if (statusCursor) {
-            const original = statusCursor.textContent;
-            statusCursor.textContent = '💾 Arquivo Salvo!';
-            setTimeout(() => { statusCursor.textContent = original; }, 2000);
-        }
-    } catch (e) {}
-};
-
-window.triggerOpenFolder = function() {
-    openFolderDialog();
-};
-
-window.triggerExportZip = function() {
-    window.open(`${API_BASE}/project/export?project_id=default`, '_blank');
-};
-
-window.editorAction = function(action) {
-    if (!state.monacoEditor) return;
-    if (action === 'undo') state.monacoEditor.trigger('keyboard', 'undo', null);
-    else if (action === 'redo') state.monacoEditor.trigger('keyboard', 'redo', null);
-    else if (action === 'find') state.monacoEditor.trigger('keyboard', 'actions.find', null);
-};
-
-window.triggerTogglePreview = function() {
-    const btn = document.getElementById('btnTogglePreviewView');
-    if (btn) btn.click();
-};
-
-window.triggerToggleExplorer = function() {
-    const explorer = document.getElementById('explorerPanel');
-    if (explorer) explorer.classList.toggle('antigravity-explorer--hidden');
-};
-
-// ---- INTEGRATED BOTTOM TERMINAL DRAWER ----
-window.triggerToggleTerminal = function() {
-    const term = document.getElementById('terminalDrawer');
-    if (!term) return;
-    const isHidden = term.style.display === 'none';
-    term.style.display = isHidden ? 'flex' : 'none';
-    if (isHidden) {
-        document.getElementById('terminalInput')?.focus();
-    }
-};
-
-window.clearTerminal = function() {
-    const out = document.getElementById('terminalOutput');
-    if (out) out.innerHTML = '<div style="color:var(--text-dim);font-size:11.5px;margin-bottom:6px;">✦ Terminal Limpo.</div>';
-};
-
-async function executeTerminalCommand(cmd) {
-    const out = document.getElementById('terminalOutput');
-    if (!out || !cmd.trim()) return;
-
-    out.innerHTML += `\n<span style="color:#10b981;">$ ${escapeHtml(cmd)}</span>\n`;
-    try {
-        const res = await fetch(`${API_BASE}/terminal/exec`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command: cmd })
-        });
-        const data = await res.json();
-        out.innerHTML += `<span>${escapeHtml(data.output || '')}</span>`;
-    } catch (e) {
-        out.innerHTML += `<span style="color:#ef4444;">Erro ao executar comando na VPS.</span>\n`;
-    }
-    out.scrollTop = out.scrollHeight;
-}
-
-// ---- ATTACHMENT UPLOAD (+) ----
-window.handleFileAttached = function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const input = document.getElementById('chatInput');
-    if (input) {
-        input.value = `[Arquivo Anexado: ${file.name}] ` + input.value;
-        input.focus();
-    }
-};
-
-// ---- AUTOCOMPLETE FOR @ AND / ----
-function initPromptAutocomplete() {
-    const input = document.getElementById('chatInput');
-    const popup = document.getElementById('autocompletePopup');
-    if (!input || !popup) return;
-
-    input.addEventListener('input', () => {
-        const text = input.value;
-        const cursor = input.selectionStart;
-        const lastWord = text.slice(0, cursor).split(/\s+/).pop();
-
-        if (lastWord.startsWith('@')) {
-            const query = lastWord.slice(1).toLowerCase();
-            const files = Object.keys(state.files);
-            const matches = files.filter(f => f.toLowerCase().includes(query));
-            if (matches.length > 0) {
-                popup.innerHTML = matches.map(m => `
-                    <div class="autocomplete-item" onclick="insertMention('${m}')">
-                        <span>${getFileIcon(m)}</span> <strong>${m}</strong>
-                    </div>
-                `).join('');
-                popup.style.display = 'block';
-                popup.style.bottom = '110px';
-                popup.style.left = '60px';
-                return;
-            }
-        } else if (lastWord.startsWith('/')) {
-            const actions = [
-                { cmd: '/deploy', desc: 'Deploy instantâneo na VPS' },
-                { cmd: '/seguranca', desc: 'Auditar banco e zero SQLi' },
-                { cmd: '/modelo', desc: 'Abrir biblioteca de modelos' },
-                { cmd: '/limpar', desc: 'Limpar conversa ativa' }
-            ];
-            const query = lastWord.slice(1).toLowerCase();
-            const matches = actions.filter(a => a.cmd.includes(query));
-            if (matches.length > 0) {
-                popup.innerHTML = matches.map(a => `
-                    <div class="autocomplete-item" onclick="insertSlashCommand('${a.cmd}')">
-                        <strong>${a.cmd}</strong> <small style="color:var(--text-dim);margin-left:6px;">${a.desc}</small>
-                    </div>
-                `).join('');
-                popup.style.display = 'block';
-                popup.style.bottom = '110px';
-                popup.style.left = '60px';
-                return;
-            }
-        }
-        popup.style.display = 'none';
-    });
-}
-
-window.insertMention = function(filename) {
-    const input = document.getElementById('chatInput');
-    const popup = document.getElementById('autocompletePopup');
-    if (input) {
-        input.value = input.value.replace(/@\w*$/, `@${filename} `);
-        input.focus();
-    }
-    if (popup) popup.style.display = 'none';
-};
-
-window.insertSlashCommand = function(cmd) {
-    const input = document.getElementById('chatInput');
-    const popup = document.getElementById('autocompletePopup');
-    if (input) {
-        input.value = `${cmd} `;
-        input.focus();
-    }
-    if (popup) popup.style.display = 'none';
-};
-
-// ---- GLOBAL KEYBINDINGS (ANTIGRAVITY / VS CODE) ----
-function initKeybindings() {
-    window.addEventListener('keydown', (e) => {
-        // Ctrl + S (Save)
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            e.preventDefault();
-            triggerSaveFile();
-        }
-        // Ctrl + ~ (Toggle Terminal)
-        if ((e.ctrlKey || e.metaKey) && (e.key === '`' || e.key === '~')) {
-            e.preventDefault();
-            triggerToggleTerminal();
-        }
-        // Ctrl + B (Toggle Explorer)
-        if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
-            e.preventDefault();
-            triggerToggleExplorer();
-        }
-        // Ctrl + N (New File)
-        if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-            e.preventDefault();
-            triggerNewFile();
-        }
-    });
-
-    // Terminal Input Enter
-    document.getElementById('terminalInput')?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            const val = e.target.value;
-            e.target.value = '';
-            executeTerminalCommand(val);
-        }
-    });
-
-    // Attachment Button (+)
-    document.getElementById('btnAddContext')?.addEventListener('click', () => {
-        document.getElementById('promptFileInput')?.click();
-    });
-
-    // Rail Terminal Button
-    document.getElementById('railBtnTerminal')?.addEventListener('click', () => {
-        triggerToggleTerminal();
-    });
-}
-
-
-// ---- STEP 1: MONACO DIFF EDITOR (REVIEW CHANGES) ----
-let diffEditorInstance = null;
-let previousFilesState = {
-    'index.html': `<!DOCTYPE html>\n<html lang="pt-BR">\n<head>\n    <meta charset="UTF-8">\n    <title>Original</title>\n</head>\n<body>\n    <h1>Versão Anterior</h1>\n</body>\n</html>`,
-    'style.css': `body { background: #000; color: #fff; }`,
-    'api.py': `from fastapi import FastAPI\napp = FastAPI()`
-};
-
-function openDiffViewer(filename = 'index.html') {
-    const viewPreview = document.getElementById('viewPreview');
-    const viewEditor = document.getElementById('viewEditor');
-    let viewDiff = document.getElementById('viewDiff');
-
-    if (!viewDiff) {
-        viewDiff = document.createElement('div');
-        viewDiff.id = 'viewDiff';
-        viewDiff.className = 'workspace-view workspace-view--diff';
-        viewDiff.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;';
-        viewDiff.innerHTML = `
-            <div style="height:35px;background:#14161f;border-bottom:1px solid #282d3c;display:flex;align-items:center;justify-content:space-between;padding:0 12px;">
-                <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#cbd5e1;">
-                    <span>🔍 Comparação de Alterações (Diff):</span>
-                    <span style="color:#a78bfa;" id="diffFileName">${filename}</span>
-                </div>
-                <div style="display:flex;gap:6px;">
-                    <button class="btn btn--deploy" style="padding:3px 10px;font-size:11px;background:#10b981;" id="btnAcceptDiff">✓ Aceitar Alterações</button>
-                    <button class="btn" style="padding:3px 10px;font-size:11px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;" id="btnRejectDiff">✕ Rejeitar</button>
-                </div>
-            </div>
-            <div id="monacoDiffContainer" style="flex:1;width:100%;"></div>
-        `;
-        document.querySelector('.workspace-views').appendChild(viewDiff);
-
-        document.getElementById('btnAcceptDiff').addEventListener('click', () => {
-            previousFilesState[state.activeFile] = state.files[state.activeFile].content;
-            closeDiffViewer();
-            addAgentResponse("✓ Alterações de código aceitas e aplicadas com sucesso no Workspace.", null, null, { title: "Código Atualizado", summary: "Alterações confirmadas no projeto." });
-        });
-
-        document.getElementById('btnRejectDiff').addEventListener('click', () => {
-            state.files[state.activeFile].content = previousFilesState[state.activeFile];
-            if (state.monacoEditor) {
-                state.monacoEditor.setValue(previousFilesState[state.activeFile]);
-            }
-            updatePreview();
-            closeDiffViewer();
-        });
-    }
-
-    if (viewPreview) viewPreview.style.display = 'none';
-    if (viewEditor) viewEditor.style.display = 'none';
-    viewDiff.style.display = 'flex';
-
-    const diffContainer = document.getElementById('monacoDiffContainer');
-    if (!diffContainer) return;
-
-    if (!diffEditorInstance && typeof monaco !== 'undefined') {
-        diffEditorInstance = monaco.editor.createDiffEditor(diffContainer, {
-            theme: 'antigravity-dark',
-            automaticLayout: true,
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 13,
-            lineHeight: 22,
-            readOnly: false,
-            renderSideBySide: true
-        });
-    }
-
-    if (diffEditorInstance && typeof monaco !== 'undefined') {
-        const origContent = previousFilesState[filename] || '';
-        const modContent = state.files[filename]?.content || '';
-        const lang = state.files[filename]?.lang || 'plaintext';
-
-        diffEditorInstance.setModel({
-            original: monaco.editor.createModel(origContent, lang),
-            modified: monaco.editor.createModel(modContent, lang)
-        });
-    }
-}
-
-function closeDiffViewer() {
-    const viewDiff = document.getElementById('viewDiff');
-    if (viewDiff) viewDiff.style.display = 'none';
-    const viewPreview = document.getElementById('viewPreview');
-    if (viewPreview) viewPreview.style.display = 'block';
-    updatePreview();
-}
-
 /* ============================================
-   ANTIGRAVITY IDE — 1:1 Engine & Interaction Logic
+   COMPLEXO-X IDE — Core Engine (v3.6)
    complexo-x.com.br/ide
    ============================================ */
 
@@ -343,16 +16,17 @@ const state = {
         'api.py': { lang: 'python', content: `from fastapi import FastAPI\napp = FastAPI(title="Complexo-X Core API")\n@app.get("/health")\ndef health(): return {"status": "online"}` }
     },
     activeFile: 'index.html',
-    currentWorkspaceName: 'PROJETOS',
+    currentWorkspaceName: 'workspace',
     currentModel: 'Claude Opus 4.6 (Thinking)',
-    activeView: 'preview', // 'preview' or 'editor'
+    activeView: 'preview',
     monacoEditor: null,
 };
 
 let currentSessionId = 'session-1';
 let currentSessionTitle = 'Missão Ativa';
+let diffEditorInstance = null;
+let previousFilesState = {};
 
-// ---- MONACO EDITOR INITIALIZATION ----
 function initMonaco() {
     if (typeof require === 'undefined') return;
     require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
@@ -421,23 +95,91 @@ function updatePreview() {
     iframe.srcdoc = fullHTML;
 }
 
-// ---- MARKDOWN & FEED RENDERER ----
+function openDiffViewer(filename = 'index.html') {
+    const viewPreview = document.getElementById('viewPreview');
+    const viewEditor = document.getElementById('viewEditor');
+    let viewDiff = document.getElementById('viewDiff');
+
+    if (!viewDiff) {
+        viewDiff = document.createElement('div');
+        viewDiff.id = 'viewDiff';
+        viewDiff.className = 'workspace-view workspace-view--diff';
+        viewDiff.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;';
+        viewDiff.innerHTML = `
+            <div style="height:35px;background:#14161f;border-bottom:1px solid #282d3c;display:flex;align-items:center;justify-content:space-between;padding:0 12px;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#cbd5e1;">
+                    <span>🔍 Comparação (Diff):</span>
+                    <span style="color:#a78bfa;" id="diffFileName">${filename}</span>
+                </div>
+                <div style="display:flex;gap:6px;">
+                    <button class="btn btn--deploy" style="padding:3px 10px;font-size:11px;background:#10b981;" id="btnAcceptDiff">✓ Aceitar</button>
+                    <button class="btn" style="padding:3px 10px;font-size:11px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;" id="btnRejectDiff">✕ Rejeitar</button>
+                </div>
+            </div>
+            <div id="monacoDiffContainer" style="flex:1;width:100%;"></div>
+        `;
+        document.querySelector('.workspace-views').appendChild(viewDiff);
+
+        document.getElementById('btnAcceptDiff').addEventListener('click', () => {
+            previousFilesState[state.activeFile] = state.files[state.activeFile].content;
+            closeDiffViewer();
+        });
+
+        document.getElementById('btnRejectDiff').addEventListener('click', () => {
+            if (previousFilesState[state.activeFile]) {
+                state.files[state.activeFile].content = previousFilesState[state.activeFile];
+                if (state.monacoEditor) state.monacoEditor.setValue(previousFilesState[state.activeFile]);
+            }
+            updatePreview();
+            closeDiffViewer();
+        });
+    }
+
+    if (viewPreview) viewPreview.style.display = 'none';
+    if (viewEditor) viewEditor.style.display = 'none';
+    viewDiff.style.display = 'flex';
+
+    const diffContainer = document.getElementById('monacoDiffContainer');
+    if (diffContainer && typeof monaco !== 'undefined') {
+        if (!diffEditorInstance) {
+            diffEditorInstance = monaco.editor.createDiffEditor(diffContainer, {
+                theme: 'antigravity-dark',
+                automaticLayout: true,
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 13,
+                lineHeight: 22,
+                renderSideBySide: true
+            });
+        }
+        const origContent = previousFilesState[filename] || '';
+        const modContent = state.files[filename]?.content || '';
+        const lang = state.files[filename]?.lang || 'plaintext';
+
+        diffEditorInstance.setModel({
+            original: monaco.editor.createModel(origContent, lang),
+            modified: monaco.editor.createModel(modContent, lang)
+        });
+    }
+}
+
+function closeDiffViewer() {
+    const viewDiff = document.getElementById('viewDiff');
+    if (viewDiff) viewDiff.style.display = 'none';
+    const viewPreview = document.getElementById('viewPreview');
+    if (viewPreview) viewPreview.style.display = 'block';
+    updatePreview();
+}
+
 function renderAntigravityMarkdown(md) {
     if (!md) return '';
     let html = escapeHtml(md);
 
-    // Code blocks ```
     html = html.replace(/```([a-z]*)\n([\s\S]*?)```/g, (match, lang, code) => {
         return `<pre style="background:#181b24;border:1px solid #282d3c;padding:12px;border-radius:6px;font-family:var(--font-mono);font-size:12px;overflow-x:auto;margin:10px 0;"><code class="language-${lang}">${code}</code></pre>`;
     });
 
-    // Inline code `code`
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-    // Bold **text**
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-
-    // Headings ###, ##, #
     html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
     html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
     html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
@@ -561,20 +303,11 @@ async function handleSendMessage() {
             addAgentResponse(
                 `### 🧠 Missão em Execução com Sucesso:
 
-1. 👨‍💻 **Programação & Arquitetura de Elite:**
-   • \`skill_padroes_de_programacao_elite.md\`
-   • \`skill_zero_ghost_verifier.md\` (Código pedagógico real)
-   • \`skill_ast_property_testing_self_healing.md\`
+1. 👨‍💻 **Programador Poliglota:** Código backend e frontend gerados.
+2. 🎨 **Designer:** Design tokens e responsividade aplicados.
+3. 🛡️ **Segurança:** Banco blindado com SQLite WAL.
 
-2. 🛡️ **Blindagem de Banco & Defesa Cibernética:**
-   • \`skill_ciberseguranca_defesa_agentes_2026.md\`
-   • \`skill_mythos_glasswing_defensive_mesh_2026.md\`
-
-3. 🎨 **Design System & UI/UX State-of-the-Art:**
-   • \`skill_design_system_ui_ux_2026.md\`
-   • \`skill_replit_agent4_studio_canvas_2026.md\`
-
-O orquestrador do **Complexo-X IDE** aplicou as alterações no **Workspace ao lado**.`,
+O resultado está atualizado no **Workspace ao lado**.`,
                 "Thought for 3s",
                 "4 commands",
                 { title: "Walkthrough", summary: "Walkthrough atualizado no workspace.", file: "index.html" }
@@ -583,211 +316,6 @@ O orquestrador do **Complexo-X IDE** aplicou as alterações no **Workspace ao l
     }
 }
 
-// ---- WORKSPACE & VIEW SWITCHER ----
-function initWorkspaceViews() {
-    const btnToggle = document.getElementById('btnTogglePreviewView');
-    const viewPreview = document.getElementById('viewPreview');
-    const viewEditor = document.getElementById('viewEditor');
-
-    function switchWorkspaceView(target) {
-        state.activeView = target;
-        if (target === 'editor') {
-            if (viewPreview) viewPreview.style.display = 'none';
-            if (viewEditor) viewEditor.style.display = 'block';
-            if (state.monacoEditor) state.monacoEditor.layout();
-        } else {
-            if (viewPreview) viewPreview.style.display = 'block';
-            if (viewEditor) viewEditor.style.display = 'none';
-            updatePreview();
-        }
-    }
-
-    if (btnToggle) {
-        btnToggle.addEventListener('click', () => {
-            switchWorkspaceView(state.activeView === 'preview' ? 'editor' : 'preview');
-        });
-    }
-
-    document.querySelectorAll('.ws-tab[data-file]').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.ws-tab').forEach(t => t.classList.remove('ws-tab--active'));
-            tab.classList.add('ws-tab--active');
-            const file = tab.dataset.file;
-            if (file === 'preview') {
-                switchWorkspaceView('preview');
-            } else {
-                switchWorkspaceView('editor');
-                switchFile(file);
-            }
-        });
-    });
-
-    document.getElementById('btnRefreshPreview')?.addEventListener('click', updatePreview);
-
-    document.getElementById('btnMaximizeWorkspace')?.addEventListener('click', () => {
-        const chatPane = document.getElementById('chatPane');
-        if (chatPane) {
-            chatPane.style.display = chatPane.style.display === 'none' ? 'flex' : 'none';
-            if (state.monacoEditor) state.monacoEditor.layout();
-        }
-    });
-
-    document.getElementById('btnCloseChatPane')?.addEventListener('click', () => {
-        const chatPane = document.getElementById('chatPane');
-        if (chatPane) chatPane.style.display = 'none';
-    });
-}
-
-function switchFile(filename) {
-    if (!state.files[filename]) return;
-    state.activeFile = filename;
-    const file = state.files[filename];
-    if (state.monacoEditor) {
-        const model = monaco.editor.createModel(file.content, file.lang);
-        state.monacoEditor.setModel(model);
-    }
-}
-
-// ---- RESIZERS ----
-function initResizers() {
-    const resizerMain = document.getElementById('resizerMain');
-    const chatPane = document.getElementById('chatPane');
-    const layout = document.querySelector('.antigravity-layout');
-
-    if (resizerMain && chatPane && layout) {
-        let isDraggingMain = false;
-        resizerMain.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            isDraggingMain = true;
-            document.body.classList.add('is-resizing');
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (!isDraggingMain) return;
-            const layoutRect = layout.getBoundingClientRect();
-            const offsetLeft = e.clientX - layoutRect.left;
-            const percentage = (offsetLeft / layoutRect.width) * 100;
-
-            if (percentage >= 25 && percentage <= 75) {
-                chatPane.style.flex = `0 0 ${percentage}%`;
-                if (state.monacoEditor) state.monacoEditor.layout();
-            }
-        });
-
-        window.addEventListener('mouseup', () => {
-            if (isDraggingMain) {
-                isDraggingMain = false;
-                document.body.classList.remove('is-resizing');
-                if (state.monacoEditor) state.monacoEditor.layout();
-            }
-        });
-    }
-
-    const resizerExp = document.getElementById('resizerExplorer');
-    const explorerPanel = document.getElementById('explorerPanel');
-
-    if (resizerExp && explorerPanel && layout) {
-        let isDraggingExp = false;
-        resizerExp.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            isDraggingExp = true;
-            document.body.classList.add('is-resizing');
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (!isDraggingExp) return;
-            const sidebarWidth = 44;
-            const newWidth = e.clientX - sidebarWidth;
-            if (newWidth >= 120 && newWidth <= 450) {
-                explorerPanel.style.width = `${newWidth}px`;
-                if (state.monacoEditor) state.monacoEditor.layout();
-            }
-        });
-
-        window.addEventListener('mouseup', () => {
-            if (isDraggingExp) {
-                isDraggingExp = false;
-                document.body.classList.remove('is-resizing');
-            }
-        });
-    }
-}
-
-// ---- RAIL NAVIGATION & TOGGLES ----
-function initRail() {
-    const explorer = document.getElementById('explorerPanel');
-    document.getElementById('railBtnFiles')?.addEventListener('click', () => {
-        if (explorer) explorer.classList.toggle('antigravity-explorer--hidden');
-    });
-
-    document.getElementById('railBtnTemplates')?.addEventListener('click', () => {
-        document.getElementById('templatesModal')?.classList.add('modal--open');
-    });
-}
-
-// ---- WORKSPACE & FOLDER SELECTION ----
-async function initFolderPicker() {
-    document.getElementById('wsFolderBtn')?.addEventListener('click', (e) => {
-        if (e.target.id === 'wsCloseBtn') return;
-        openFolderDialog();
-    });
-
-    document.getElementById('wsAddFolderBtn')?.addEventListener('click', () => {
-        openFolderDialog();
-    });
-
-    document.getElementById('wsCloseBtn')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeFolder();
-    });
-
-    loadFileTree();
-}
-
-async function openFolderDialog() {
-    if ('showDirectoryPicker' in window) {
-        try {
-            const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-            if (dirHandle && dirHandle.name) {
-                state.currentWorkspaceName = dirHandle.name;
-                updateFolderUI(dirHandle.name);
-                return;
-            }
-        } catch (err) {
-            if (err.name === 'AbortError') return;
-        }
-    }
-    document.getElementById('workspaceModal')?.classList.add('modal--open');
-}
-
-function updateFolderUI(name) {
-    const el = document.getElementById('wsFolderName');
-    const rootEl = document.getElementById('explorerRootName');
-    if (el) el.textContent = name;
-    if (rootEl) rootEl.textContent = name.toUpperCase();
-}
-
-function closeFolder() {
-    state.currentWorkspaceName = 'Sem Pasta';
-    updateFolderUI('Sem Pasta');
-}
-
-window.chooseWorkspace = function(path) {
-    closeModal('workspaceModal');
-    const name = path.split('/').pop().split('\\').pop();
-    state.currentWorkspaceName = name;
-    updateFolderUI(name);
-    loadFileTree();
-};
-
-window.openCustomWorkspace = function() {
-    const input = document.getElementById('customWsInput');
-    if (input && input.value.trim()) {
-        window.chooseWorkspace(input.value.trim());
-    }
-};
-
-// ---- FULL INTERACTIVE EXPLORER & TREE ENGINE ----
 async function loadFileTree() {
     const container = document.getElementById('fileTreeContainer');
     if (!container) return;
@@ -796,9 +324,6 @@ async function loadFileTree() {
         if (!res.ok) throw new Error('API indisponível');
         const data = await res.json();
         container.innerHTML = '';
-        if (data.root) {
-            updateFolderUI(data.root);
-        }
         if (data.tree && data.tree.length > 0) {
             const fragment = document.createDocumentFragment();
             data.tree.forEach(node => {
@@ -917,7 +442,6 @@ async function openFileFromPath(filePath, fileName) {
             const data = await res.json();
             state.files[fileName] = { lang: data.lang, content: data.content };
             
-            // Switch to editor view
             const viewPreview = document.getElementById('viewPreview');
             const viewEditor = document.getElementById('viewEditor');
             const viewDiff = document.getElementById('viewDiff');
@@ -926,7 +450,6 @@ async function openFileFromPath(filePath, fileName) {
             if (viewEditor) viewEditor.style.display = 'block';
             state.activeView = 'editor';
 
-            // Add or activate workspace tab
             let tab = document.querySelector(`.ws-tab[data-file="${fileName}"]`);
             if (!tab) {
                 const tabsList = document.getElementById('workspaceTabsList');
@@ -960,7 +483,6 @@ window.closeWorkspaceTab = function(e, fileName) {
 };
 
 function initExplorerActions() {
-    // Button New File [+]
     document.getElementById('btnNewFile')?.addEventListener('click', async () => {
         const fileName = prompt('Nome do novo arquivo (ex: app.py, checkout.html):');
         if (!fileName) return;
@@ -975,42 +497,223 @@ function initExplorerActions() {
         } catch (e) {}
     });
 
-    // Button Folder [📂] -> Opens Native Windows Folder Picker Dialog (showDirectoryPicker) directly!
-    document.getElementById('btnNewFolder')?.addEventListener('click', () => {
+    document.getElementById('btnOpenFolderAction')?.addEventListener('click', () => {
         openFolderDialog();
     });
 
-    // Button Refresh [🔄]
+    document.getElementById('btnCloseFolderAction')?.addEventListener('click', () => {
+        closeFolder();
+    });
+
     document.getElementById('btnRefreshTree')?.addEventListener('click', () => {
         loadFileTree();
     });
 }
 
-// ---- CHAT SESSIONS & CONVERSATION CONTINUITY ----
+async function openFolderDialog() {
+    if ('showDirectoryPicker' in window && window.isSecureContext) {
+        try {
+            const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+            if (dirHandle && dirHandle.name) {
+                state.currentWorkspaceName = dirHandle.name;
+                await loadLocalDirectoryHandle(dirHandle);
+                return;
+            }
+        } catch (err) {
+            if (err.name === 'AbortError') return;
+        }
+    }
+    const modal = document.getElementById('workspaceModal');
+    if (modal) modal.classList.add('modal--open');
+}
+
+function closeFolder() {
+    state.currentWorkspaceName = 'SEM PASTA';
+    const container = document.getElementById('fileTreeContainer');
+    if (container) {
+        container.innerHTML = `
+            <div style="padding:36px 14px;text-align:center;">
+                <div style="font-size:28px;margin-bottom:8px;opacity:0.6;">📂</div>
+                <p style="font-size:11.5px;color:var(--text-dim);margin-bottom:14px;">Nenhuma pasta aberta</p>
+                <button class="btn btn--deploy" style="font-size:11.5px;padding:5px 12px;margin:0 auto;" onclick="openFolderDialog()">Abrir Pasta</button>
+            </div>
+        `;
+    }
+}
+
+window.chooseWorkspace = async function(path) {
+    closeModal('workspaceModal');
+    const name = path.split('/').pop().split('\\').pop();
+    state.currentWorkspaceName = name;
+    try {
+        await fetch(`${API_BASE}/fs/workspace/switch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: path })
+        });
+    } catch (e) {}
+    loadFileTree();
+};
+
+window.openCustomWorkspace = function() {
+    const input = document.getElementById('customWsInput');
+    if (input && input.value.trim()) {
+        window.chooseWorkspace(input.value.trim());
+    }
+};
+
+function initWorkspaceViews() {
+    const btnToggle = document.getElementById('btnTogglePreviewView');
+    const viewPreview = document.getElementById('viewPreview');
+    const viewEditor = document.getElementById('viewEditor');
+
+    function switchWorkspaceView(target) {
+        state.activeView = target;
+        if (target === 'editor') {
+            if (viewPreview) viewPreview.style.display = 'none';
+            if (viewEditor) viewEditor.style.display = 'block';
+            if (state.monacoEditor) state.monacoEditor.layout();
+        } else {
+            if (viewPreview) viewPreview.style.display = 'block';
+            if (viewEditor) viewEditor.style.display = 'none';
+            updatePreview();
+        }
+    }
+
+    if (btnToggle) {
+        btnToggle.addEventListener('click', () => {
+            switchWorkspaceView(state.activeView === 'preview' ? 'editor' : 'preview');
+        });
+    }
+
+    document.querySelectorAll('.ws-tab[data-file]').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.ws-tab').forEach(t => t.classList.remove('ws-tab--active'));
+            tab.classList.add('ws-tab--active');
+            const file = tab.dataset.file;
+            if (file === 'preview') {
+                switchWorkspaceView('preview');
+            } else {
+                switchWorkspaceView('editor');
+                switchFile(file);
+            }
+        });
+    });
+
+    document.getElementById('btnRefreshPreview')?.addEventListener('click', updatePreview);
+    document.getElementById('btnMaximizeWorkspace')?.addEventListener('click', () => {
+        const chatPane = document.getElementById('chatPane');
+        if (chatPane) {
+            chatPane.style.display = chatPane.style.display === 'none' ? 'flex' : 'none';
+            if (state.monacoEditor) state.monacoEditor.layout();
+        }
+    });
+
+    document.getElementById('btnCloseChatPane')?.addEventListener('click', () => {
+        const chatPane = document.getElementById('chatPane');
+        if (chatPane) chatPane.style.display = 'none';
+    });
+}
+
+function switchFile(filename) {
+    if (!state.files[filename]) return;
+    state.activeFile = filename;
+    const file = state.files[filename];
+    if (state.monacoEditor) {
+        const model = monaco.editor.createModel(file.content, file.lang);
+        state.monacoEditor.setModel(model);
+    }
+}
+
+function initResizers() {
+    const resizerMain = document.getElementById('resizerMain');
+    const chatPane = document.getElementById('chatPane');
+    const layout = document.querySelector('.antigravity-layout');
+
+    if (resizerMain && chatPane && layout) {
+        let isDraggingMain = false;
+        resizerMain.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isDraggingMain = true;
+            document.body.classList.add('is-resizing');
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDraggingMain) return;
+            const layoutRect = layout.getBoundingClientRect();
+            const offsetLeft = e.clientX - layoutRect.left;
+            const percentage = (offsetLeft / layoutRect.width) * 100;
+
+            if (percentage >= 25 && percentage <= 75) {
+                chatPane.style.flex = `0 0 ${percentage}%`;
+                if (state.monacoEditor) state.monacoEditor.layout();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDraggingMain) {
+                isDraggingMain = false;
+                document.body.classList.remove('is-resizing');
+                if (state.monacoEditor) state.monacoEditor.layout();
+            }
+        });
+    }
+
+    const resizerExp = document.getElementById('resizerExplorer');
+    const explorerPanel = document.getElementById('explorerPanel');
+
+    if (resizerExp && explorerPanel && layout) {
+        let isDraggingExp = false;
+        resizerExp.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isDraggingExp = true;
+            document.body.classList.add('is-resizing');
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDraggingExp) return;
+            const sidebarWidth = 44;
+            const newWidth = e.clientX - sidebarWidth;
+            if (newWidth >= 120 && newWidth <= 450) {
+                explorerPanel.style.width = `${newWidth}px`;
+                if (state.monacoEditor) state.monacoEditor.layout();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDraggingExp) {
+                isDraggingExp = false;
+                document.body.classList.remove('is-resizing');
+            }
+        });
+    }
+}
+
+function initRail() {
+    const explorer = document.getElementById('explorerPanel');
+    document.getElementById('railBtnFiles')?.addEventListener('click', () => {
+        if (explorer) explorer.classList.toggle('antigravity-explorer--hidden');
+    });
+
+    document.getElementById('railBtnTemplates')?.addEventListener('click', () => {
+        document.getElementById('templatesModal')?.classList.add('modal--open');
+    });
+}
+
 async function initChatSessionsManager() {
-    const btnHistory = document.getElementById('btnChatHistory');
-    const btnNewChat = document.getElementById('btnNewChat');
-    const btnNewFromModal = document.getElementById('btnCreateNewSessionFromModal');
+    document.getElementById('btnChatHistory')?.addEventListener('click', async () => {
+        await renderSessionsModal();
+        document.getElementById('sessionsModal')?.classList.add('modal--open');
+    });
 
-    if (btnHistory) {
-        btnHistory.addEventListener('click', async () => {
-            await renderSessionsModal();
-            document.getElementById('sessionsModal')?.classList.add('modal--open');
-        });
-    }
+    document.getElementById('btnNewChat')?.addEventListener('click', () => {
+        startNewConversation();
+    });
 
-    if (btnNewChat) {
-        btnNewChat.addEventListener('click', () => {
-            startNewConversation();
-        });
-    }
-
-    if (btnNewFromModal) {
-        btnNewFromModal.addEventListener('click', () => {
-            closeModal('sessionsModal');
-            startNewConversation();
-        });
-    }
+    document.getElementById('btnCreateNewSessionFromModal')?.addEventListener('click', () => {
+        closeModal('sessionsModal');
+        startNewConversation();
+    });
 }
 
 async function renderSessionsModal() {
@@ -1054,7 +757,6 @@ function startNewConversation() {
     currentSessionTitle = 'Nova Missão';
     const titleEl = document.getElementById('conversationTitle');
     if (titleEl) titleEl.textContent = currentSessionTitle;
-
     const feed = document.getElementById('chatMessages');
     if (feed) feed.innerHTML = '';
 }
@@ -1072,16 +774,12 @@ function resumeSession(sess) {
 
     if (sess.messages && sess.messages.length > 0) {
         sess.messages.forEach(m => {
-            if (m.role === 'user') {
-                addUserMessage(m.text);
-            } else {
-                addAgentResponse(m.text, "Thought for 4s", "4 commands");
-            }
+            if (m.role === 'user') addUserMessage(m.text);
+            else addAgentResponse(m.text, "Thought for 4s", "4 commands");
         });
     }
 }
 
-// ---- MODEL PICKER ----
 function initModelPicker() {
     const models = [
         'Claude Opus 4.6 (Thinking)',
@@ -1098,7 +796,6 @@ function initModelPicker() {
     });
 }
 
-// ---- WEBSOCKET TELEMETRY ----
 function initWebSocket() {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsHost = window.location.host;
@@ -1143,7 +840,231 @@ function initWebSocket() {
     };
 }
 
-// ---- UTILITIES ----
+window.toggleMenu = function(menuId) {
+    document.querySelectorAll('.dropdown-content').forEach(d => {
+        if (d.id !== menuId) d.classList.remove('show');
+    });
+    document.getElementById(menuId)?.classList.toggle('show');
+};
+
+window.addEventListener('click', (e) => {
+    if (!e.target.matches('.menu-btn')) {
+        document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
+    }
+});
+
+window.triggerNewFile = function() {
+    const fileName = prompt('Nome do novo arquivo (ex: app.py, checkout.html):');
+    if (!fileName) return;
+    state.files[fileName] = { lang: 'plaintext', content: '' };
+    switchFile(fileName);
+    loadFileTree();
+};
+
+window.triggerNewFolder = function() {
+    const folderName = prompt('Nome da nova pasta:');
+    if (!folderName) return;
+    fetch(`${API_BASE}/fs/folder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: folderName })
+    }).then(() => loadFileTree());
+};
+
+window.triggerSaveFile = async function() {
+    if (!state.activeFile || !state.files[state.activeFile]) return;
+    const content = state.monacoEditor ? state.monacoEditor.getValue() : state.files[state.activeFile].content;
+    try {
+        await fetch(`${API_BASE}/fs/file`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: state.activeFile, content: content })
+        });
+        const statusCursor = document.getElementById('statusCursorPos');
+        if (statusCursor) {
+            const original = statusCursor.textContent;
+            statusCursor.textContent = '💾 Arquivo Salvo!';
+            setTimeout(() => { statusCursor.textContent = original; }, 2000);
+        }
+    } catch (e) {}
+};
+
+window.triggerOpenFolder = function() {
+    openFolderDialog();
+};
+
+window.triggerExportZip = function() {
+    window.open(`${API_BASE}/project/export?project_id=default`, '_blank');
+};
+
+window.editorAction = function(action) {
+    if (!state.monacoEditor) return;
+    if (action === 'undo') state.monacoEditor.trigger('keyboard', 'undo', null);
+    else if (action === 'redo') state.monacoEditor.trigger('keyboard', 'redo', null);
+    else if (action === 'find') state.monacoEditor.trigger('keyboard', 'actions.find', null);
+};
+
+window.triggerTogglePreview = function() {
+    const btn = document.getElementById('btnTogglePreviewView');
+    if (btn) btn.click();
+};
+
+window.triggerToggleExplorer = function() {
+    const explorer = document.getElementById('explorerPanel');
+    if (explorer) explorer.classList.toggle('antigravity-explorer--hidden');
+};
+
+window.triggerToggleTerminal = function() {
+    const term = document.getElementById('terminalDrawer');
+    if (!term) return;
+    const isHidden = term.style.display === 'none';
+    term.style.display = isHidden ? 'flex' : 'none';
+    if (isHidden) {
+        document.getElementById('terminalInput')?.focus();
+    }
+};
+
+window.clearTerminal = function() {
+    const out = document.getElementById('terminalOutput');
+    if (out) out.innerHTML = '<div style="color:var(--text-dim);font-size:11.5px;margin-bottom:6px;">✦ Terminal Limpo.</div>';
+};
+
+async function executeTerminalCommand(cmd) {
+    const out = document.getElementById('terminalOutput');
+    if (!out || !cmd.trim()) return;
+
+    out.innerHTML += `\n<span style="color:#10b981;">$ ${escapeHtml(cmd)}</span>\n`;
+    try {
+        const res = await fetch(`${API_BASE}/terminal/exec`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: cmd })
+        });
+        const data = await res.json();
+        out.innerHTML += `<span>${escapeHtml(data.output || '')}</span>`;
+    } catch (e) {
+        out.innerHTML += `<span style="color:#ef4444;">Erro ao executar comando.</span>\n`;
+    }
+    out.scrollTop = out.scrollHeight;
+}
+
+window.handleFileAttached = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const input = document.getElementById('chatInput');
+    if (input) {
+        input.value = `[Arquivo Anexado: ${file.name}] ` + input.value;
+        input.focus();
+    }
+};
+
+function initPromptAutocomplete() {
+    const input = document.getElementById('chatInput');
+    const popup = document.getElementById('autocompletePopup');
+    if (!input || !popup) return;
+
+    input.addEventListener('input', () => {
+        const text = input.value;
+        const cursor = input.selectionStart;
+        const lastWord = text.slice(0, cursor).split(/\s+/).pop();
+
+        if (lastWord.startsWith('@')) {
+            const query = lastWord.slice(1).toLowerCase();
+            const files = Object.keys(state.files);
+            const matches = files.filter(f => f.toLowerCase().includes(query));
+            if (matches.length > 0) {
+                popup.innerHTML = matches.map(m => `
+                    <div class="autocomplete-item" onclick="insertMention('${m}')">
+                        <span>${getFileIcon(m)}</span> <strong>${m}</strong>
+                    </div>
+                `).join('');
+                popup.style.display = 'block';
+                popup.style.bottom = '110px';
+                popup.style.left = '60px';
+                return;
+            }
+        } else if (lastWord.startsWith('/')) {
+            const actions = [
+                { cmd: '/deploy', desc: 'Deploy instantâneo na VPS' },
+                { cmd: '/seguranca', desc: 'Auditar banco e zero SQLi' },
+                { cmd: '/modelo', desc: 'Abrir biblioteca de modelos' },
+                { cmd: '/limpar', desc: 'Limpar conversa ativa' }
+            ];
+            const query = lastWord.slice(1).toLowerCase();
+            const matches = actions.filter(a => a.cmd.includes(query));
+            if (matches.length > 0) {
+                popup.innerHTML = matches.map(a => `
+                    <div class="autocomplete-item" onclick="insertSlashCommand('${a.cmd}')">
+                        <strong>${a.cmd}</strong> <small style="color:var(--text-dim);margin-left:6px;">${a.desc}</small>
+                    </div>
+                `).join('');
+                popup.style.display = 'block';
+                popup.style.bottom = '110px';
+                popup.style.left = '60px';
+                return;
+            }
+        }
+        popup.style.display = 'none';
+    });
+}
+
+window.insertMention = function(filename) {
+    const input = document.getElementById('chatInput');
+    const popup = document.getElementById('autocompletePopup');
+    if (input) {
+        input.value = input.value.replace(/@\w*$/, `@${filename} `);
+        input.focus();
+    }
+    if (popup) popup.style.display = 'none';
+};
+
+window.insertSlashCommand = function(cmd) {
+    const input = document.getElementById('chatInput');
+    const popup = document.getElementById('autocompletePopup');
+    if (input) {
+        input.value = `${cmd} `;
+        input.focus();
+    }
+    if (popup) popup.style.display = 'none';
+};
+
+function initKeybindings() {
+    window.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            triggerSaveFile();
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === '`' || e.key === '~')) {
+            e.preventDefault();
+            triggerToggleTerminal();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+            e.preventDefault();
+            triggerToggleExplorer();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+            e.preventDefault();
+            triggerNewFile();
+        }
+    });
+
+    document.getElementById('terminalInput')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const val = e.target.value;
+            e.target.value = '';
+            executeTerminalCommand(val);
+        }
+    });
+
+    document.getElementById('btnAddContext')?.addEventListener('click', () => {
+        document.getElementById('promptFileInput')?.click();
+    });
+
+    document.getElementById('railBtnTerminal')?.addEventListener('click', () => {
+        triggerToggleTerminal();
+    });
+}
+
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -1155,7 +1076,6 @@ window.closeModal = function(id) {
     document.getElementById(id)?.classList.remove('modal--open');
 };
 
-// ---- INITIALIZATION ----
 document.addEventListener('DOMContentLoaded', () => {
     initMonaco();
     initWorkspaceViews();
@@ -1168,6 +1088,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initWebSocket();
     initPromptAutocomplete();
     initKeybindings();
+    loadFileTree();
 
     document.getElementById('btnSend')?.addEventListener('click', handleSendMessage);
     document.getElementById('chatInput')?.addEventListener('keydown', (e) => {
@@ -1182,7 +1103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         this.style.height = Math.min(this.scrollHeight, 160) + 'px';
     });
 
-        document.getElementById('btnReviewChanges')?.addEventListener('click', () => {
+    document.getElementById('btnReviewChanges')?.addEventListener('click', () => {
         openDiffViewer(state.activeFile || 'index.html');
     });
 

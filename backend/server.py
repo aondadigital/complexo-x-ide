@@ -376,6 +376,81 @@ async def agent_task_seo(html: str) -> str:
     })
     return enhanced_html
 
+
+# --- Endpoints do Explorador de Arquivos & Árvore de Pastas (Sidebar #2) ---
+def get_dir_tree(directory: Path) -> List[Dict[str, Any]]:
+    tree = []
+    try:
+        for item in sorted(directory.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
+            if item.name.startswith(".") or item.name in ["__pycache__", "venv", "node_modules", ".git"]:
+                continue
+            
+            node = {
+                "name": item.name,
+                "path": str(item.relative_to(BASE_DIR)).replace("\\", "/"),
+                "is_dir": item.is_dir(),
+                "size": item.stat().st_size if item.is_file() else 0
+            }
+            if item.is_dir():
+                node["children"] = get_dir_tree(item)
+            else:
+                node["ext"] = item.suffix.lower()
+            tree.append(node)
+    except Exception:
+        pass
+    return tree
+
+@app.get("/api/fs/tree")
+async def get_file_tree(scope: str = "workspace"):
+    target_dir = PROJECTS_DIR if scope == "workspace" else BASE_DIR
+    return {
+        "root": target_dir.name,
+        "tree": get_dir_tree(target_dir)
+    }
+
+@app.get("/api/fs/file")
+async def read_fs_file(path: str):
+    file_path = BASE_DIR / path.lstrip("/")
+    if not file_path.exists() or file_path.is_dir():
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+    try:
+        content = file_path.read_text(encoding="utf-8-sig")
+        return {"path": path, "content": content, "size": len(content)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class CreateFileRequest(BaseModel):
+    path: str
+    content: str = ""
+
+@app.post("/api/fs/file")
+async def save_fs_file(payload: CreateFileRequest):
+    file_path = BASE_DIR / payload.path.lstrip("/")
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_text(payload.content, encoding="utf-8")
+    return {"ok": True, "path": payload.path, "saved": True}
+
+class CreateFolderRequest(BaseModel):
+    path: str
+
+@app.post("/api/fs/folder")
+async def create_fs_folder(payload: CreateFolderRequest):
+    folder_path = BASE_DIR / payload.path.lstrip("/")
+    folder_path.mkdir(parents=True, exist_ok=True)
+    return {"ok": True, "path": payload.path, "created": True}
+
+@app.delete("/api/fs/file")
+async def delete_fs_file(path: str):
+    target_path = BASE_DIR / path.lstrip("/")
+    if not target_path.exists():
+        raise HTTPException(status_code=404, detail="Item não encontrado")
+    if target_path.is_dir():
+        import shutil
+        shutil.rmtree(target_path)
+    else:
+        target_path.unlink()
+    return {"ok": True, "path": path, "deleted": True}
+
 @app.post("/api/mission")
 async def execute_mission_pipeline(mission: MissionRequest):
     asyncio.create_task(run_parallel_pipeline(mission))

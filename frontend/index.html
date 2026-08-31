@@ -15,31 +15,39 @@
     <header class="antigravity-topbar">
         <div class="topbar-left-menu">
             <div class="app-logo">✦</div>
-                                                <nav class="menu-items">
+                                                            <nav class="menu-items">
                 <!-- ARQUIVO -->
                 <div class="dropdown">
                     <button class="menu-btn" onclick="toggleMenu('menuArquivo')">Arquivo</button>
                     <div class="dropdown-content" id="menuArquivo">
                         <a href="javascript:void(0)" onclick="triggerNewFile()">Novo Arquivo de Texto <span class="shortcut">Ctrl+N</span></a>
-                        <a href="javascript:void(0)" onclick="triggerNewFile()">Novo Arquivo... <span class="shortcut">Ctrl+Alt+Win+N</span></a>
+                        <a href="javascript:void(0)" onclick="triggerNewFile()">Novo Arquivo... <span class="shortcut">Ctrl+Alt+Windows+N</span></a>
                         <a href="javascript:void(0)" onclick="window.open(window.location.href, '_blank')">Nova Janela <span class="shortcut">Ctrl+Shift+N</span></a>
+                        <a href="javascript:void(0)">Nova Janela com Perfil <span class="sub-arrow">›</span></a>
                         <hr>
                         <a href="javascript:void(0)" onclick="triggerOpenFolder()">Abrir o Arquivo... <span class="shortcut">Ctrl+O</span></a>
                         <a href="javascript:void(0)" onclick="triggerOpenFolder()">Abrir Pasta... <span class="shortcut">Ctrl+K Ctrl+O</span></a>
-                        <a href="javascript:void(0)" onclick="triggerOpenFolder()">Abrir Recente <span class="sub-arrow">❯</span></a>
+                        <a href="javascript:void(0)" onclick="triggerOpenFolder()">Abrir o Workspace a partir do Arquivo...</a>
+                        <a href="javascript:void(0)" onclick="triggerOpenFolder()">Abrir Recente <span class="sub-arrow">›</span></a>
                         <hr>
                         <a href="javascript:void(0)" onclick="triggerOpenFolder()">Adicionar Pasta ao Workspace...</a>
                         <a href="javascript:void(0)" onclick="triggerExportZip()">Salvar Workspace como...</a>
+                        <a href="javascript:void(0)" onclick="triggerExportZip()">Duplicar Espaço de trabalho</a>
                         <hr>
                         <a href="javascript:void(0)" onclick="triggerSaveFile()">Salvar <span class="shortcut">Ctrl+S</span></a>
                         <a href="javascript:void(0)" onclick="triggerSaveFile()">Salvar como... <span class="shortcut">Ctrl+Shift+S</span></a>
-                        <a href="javascript:void(0)" onclick="triggerSaveFile()">Salvar Tudo <span class="shortcut">Ctrl+K S</span></a>
+                        <a href="javascript:void(0)" class="disabled-item">Salvar Tudo <span class="shortcut">Ctrl+K S</span></a>
                         <hr>
-                        <a href="javascript:void(0)" onclick="toggleAutoSave()"><span style="color:#10b981;">✓</span> Salvamento Automático</a>
-                        <a href="javascript:void(0)" onclick="openTemplatesModal()">Preferências <span class="sub-arrow">❯</span></a>
+                        <a href="javascript:void(0)">Compartilhar <span class="sub-arrow">›</span></a>
                         <hr>
+                        <a href="javascript:void(0)" onclick="toggleAutoSave()"><span class="check-icon">✓</span> Salvamento Automático</a>
+                        <a href="javascript:void(0)" onclick="openTemplatesModal()">Preferências <span class="sub-arrow">›</span></a>
+                        <hr>
+                        <a href="javascript:void(0)">Reverter Arquivo</a>
                         <a href="javascript:void(0)" onclick="closeFolder()">Fechar o Editor <span class="shortcut">Ctrl+F4</span></a>
                         <a href="javascript:void(0)" onclick="closeFolder()">Fechar a Janela <span class="shortcut">Alt+F4</span></a>
+                        <hr>
+                        <a href="javascript:void(0)" onclick="closeFolder()">Sair</a>
                     </div>
                 </div>
 

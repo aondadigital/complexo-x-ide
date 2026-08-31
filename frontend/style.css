@@ -1,5 +1,5 @@
 ﻿/* ============================================
-   VS CODE / ANTIGRAVITY 1:1 TOPBAR DROPDOWN MENUS
+   VS CODE / ANTIGRAVITY EXACT 1:1 DROPDOWN STYLES
    ============================================ */
 .dropdown {
     position: relative;
@@ -10,9 +10,10 @@
     background: transparent;
     border: none;
     color: #cccccc;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     font-size: 12px;
     font-weight: 400;
-    padding: 4px 8px;
+    padding: 3px 8px;
     cursor: pointer;
     border-radius: 4px;
     transition: background 0.1s;
@@ -28,13 +29,13 @@
     position: absolute;
     top: 100%;
     left: 0;
-    background: #1e1e1e;
-    min-width: 250px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-    border: 1px solid #333333;
+    background: #181818;
+    min-width: 270px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+    border: 1px solid #2b2b2b;
     border-radius: 6px;
     z-index: 9999;
-    padding: 5px 0;
+    padding: 4px 0;
 }
 
 .dropdown-content.show {
@@ -43,39 +44,56 @@
 
 .dropdown-content a {
     color: #cccccc;
-    padding: 5px 14px;
+    padding: 4px 12px;
     text-decoration: none;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     font-size: 12px;
-    line-height: 18px;
+    line-height: 20px;
     white-space: nowrap;
-    transition: background 0.08s, color 0.08s;
+    transition: background 0.05s, color 0.05s;
 }
 
-.dropdown-content a:hover {
+.dropdown-content a:hover:not(.disabled-item) {
     background: #04395e;
     color: #ffffff;
 }
 
+.dropdown-content a.disabled-item {
+    color: #555555 !important;
+    cursor: default;
+}
+
+.dropdown-content a.disabled-item .shortcut {
+    color: #444444 !important;
+}
+
 .dropdown-content hr {
     border: none;
-    border-top: 1px solid #333333;
-    margin: 4px 0;
+    border-top: 1px solid #2b2b2b;
+    margin: 3px 0;
 }
 
 .shortcut {
     color: #858585;
     font-size: 11px;
     font-family: var(--font-mono);
-    margin-left: 20px;
+    margin-left: 24px;
+    text-align: right;
 }
 
 .sub-arrow {
     color: #858585;
-    font-size: 10px;
+    font-size: 12px;
     margin-left: 16px;
+    font-weight: bold;
+}
+
+.check-icon {
+    font-size: 11px;
+    margin-right: 6px;
 }
 
 /* ============================================

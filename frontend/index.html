@@ -27,6 +27,17 @@
             </div>
         </div>
         <div class="topbar__actions">
+                        <div class="layout-toggles">
+                <button class="layout-toggle-btn layout-toggle-btn--active" id="toggleExplorerBtn" title="Alternar Explorador de Pastas">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" stroke="currentColor" stroke-width="1.5"/></svg>
+                </button>
+                <button class="layout-toggle-btn layout-toggle-btn--active" id="togglePreviewBtn" title="Alternar Preview ao Vivo">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M15 3v18" stroke="currentColor" stroke-width="1.5"/></svg>
+                </button>
+                <button class="layout-toggle-btn layout-toggle-btn--active" id="toggleBottomBtn" title="Alternar Painel Inferior (Chat & Agentes)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3 15h18" stroke="currentColor" stroke-width="1.5"/></svg>
+                </button>
+            </div>
             <div class="vps-status" id="vpsStatus">
                 <span class="vps-status__dot"></span>
                 <span>VPS Online</span>
@@ -117,6 +128,9 @@
                             </button>
                             <button class="tab tab--add" title="Novo arquivo">+</button>
                         </div>
+                        <div class="panel-action-btns">
+                            <button class="panel-btn" id="btnMaximizeEditor" title="Maximizar / Restaurar Editor">⤢</button>
+                        </div>
                     </div>
                     <div class="panel__body" id="editorContainer">
                         <div id="monacoEditor" class="editor-area"></div>
@@ -138,7 +152,13 @@
                                 <button class="device-btn" data-device="mobile">Mobile</button>
                             </div>
                         </div>
-                        <span class="panel__title">Preview ao Vivo</span>
+                                                <div class="panel__header-actions">
+                            <span class="panel__title">Preview ao Vivo</span>
+                            <div class="panel-action-btns">
+                                <button class="panel-btn" id="btnMaximizePreview" title="Maximizar / Restaurar Preview">⤢</button>
+                                <button class="panel-btn" id="btnClosePreview" title="Fechar / Ocultar Preview">✕</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="panel__body preview-body">
                         <iframe id="previewFrame" class="preview-iframe" srcdoc="<html><body style='background:#0f1117;color:#8b8fa3;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif'><p style='text-align:center'>Aguardando construção...<br><small style='opacity:0.5'>Os agentes vão construir aqui</small></p>    <div id="dragOverlay"></div>
@@ -187,7 +207,12 @@
                 <section class="panel panel--agents" id="panelAgents">
                     <div class="panel__header">
                         <span class="panel__title">🤖 Equipe de Agentes</span>
-                        <span class="agents-count" id="agentsCount">0/6 ativos</span>
+                                                <div class="panel__header-actions">
+                            <span class="agents-count" id="agentsCount">0/6 ativos</span>
+                            <div class="panel-action-btns">
+                                <button class="panel-btn" id="btnCloseAgents" title="Fechar / Ocultar Dashboard de Agentes">✕</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="panel__body agents-grid" id="agentsDashboard">
                         <div class="agent-card" id="agent-gerente">

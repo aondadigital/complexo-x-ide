@@ -1063,3 +1063,113 @@ body.is-resizing iframe {
 .tree-children--collapsed {
     display: none;
 }
+/* ============================================
+   LAYOUT TOGGLES & COLLAPSIBLE PANELS (ANTIGRAVITY STYLE)
+   ============================================ */
+.layout-toggles {
+    display: flex;
+    align-items: center;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 2px;
+    gap: 2px;
+}
+
+.layout-toggle-btn {
+    padding: 4px 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.layout-toggle-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.layout-toggle-btn--active {
+    color: var(--accent-primary) !important;
+    background: var(--accent-primary-glow) !important;
+}
+
+/* Panel Header Actions (Close / Maximize) */
+.panel__header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.panel-action-btns {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.panel-btn {
+    width: 22px;
+    height: 22px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.panel-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+    border-color: var(--border-default);
+}
+
+/* Collapsed Panel States */
+.panel--collapsed {
+    flex: 0 0 0% !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    overflow: hidden !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: flex 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+}
+
+.panel--expanded-full {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+}
+
+.resizer--hidden {
+    display: none !important;
+}
+
+.main__bottom--collapsed {
+    height: 0 !important;
+    flex: 0 0 0% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    border: none !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1), flex 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main__top--expanded {
+    flex: 1 1 100% !important;
+    height: 100% !important;
+}

@@ -643,12 +643,178 @@ function initEvents() {
 }
 
 // ---- INIT ----
+
+// ---- PANEL COLLAPSE & TOGGLE ENGINE (ANTIGRAVITY STYLE) ----
+function initPanelToggles() {
+    const panelPreview = document.getElementById('panelPreview');
+    const resizerVTop = document.getElementById('resizerVTop');
+    const togglePreviewBtn = document.getElementById('togglePreviewBtn');
+    const btnClosePreview = document.getElementById('btnClosePreview');
+    const btnMaximizePreview = document.getElementById('btnMaximizePreview');
+    const btnMaximizeEditor = document.getElementById('btnMaximizeEditor');
+
+    const panelAgents = document.getElementById('panelAgents');
+    const resizerVBottom = document.getElementById('resizerVBottom');
+    const btnCloseAgents = document.getElementById('btnCloseAgents');
+
+    const bottomRow = document.getElementById('bottomRow');
+    const topRow = document.getElementById('topRow');
+    const resizerH = document.getElementById('resizerH');
+    const toggleBottomBtn = document.getElementById('toggleBottomBtn');
+
+    const explorerPanel = document.getElementById('explorerPanel');
+    const resizerVExplorer = document.getElementById('resizerVExplorer');
+    const toggleExplorerBtn = document.getElementById('toggleExplorerBtn');
+
+    // 1. Toggle Preview Panel (Top Right)
+    function togglePreview(forceState = null) {
+        if (!panelPreview) return;
+        const isCurrentlyOpen = !panelPreview.classList.contains('panel--collapsed');
+        const willOpen = forceState !== null ? forceState : !isCurrentlyOpen;
+
+        if (willOpen) {
+            panelPreview.classList.remove('panel--collapsed');
+            if (resizerVTop) resizerVTop.classList.remove('resizer--hidden');
+            if (togglePreviewBtn) togglePreviewBtn.classList.add('layout-toggle-btn--active');
+            localStorage.setItem('cx_preview_open', 'true');
+        } else {
+            panelPreview.classList.add('panel--collapsed');
+            if (resizerVTop) resizerVTop.classList.add('resizer--hidden');
+            if (togglePreviewBtn) togglePreviewBtn.classList.remove('layout-toggle-btn--active');
+            localStorage.setItem('cx_preview_open', 'false');
+        }
+
+        setTimeout(() => {
+            if (state.monacoEditor) state.monacoEditor.layout();
+        }, 100);
+    }
+
+    // 2. Toggle Agents Dashboard (Bottom Right)
+    function toggleAgents(forceState = null) {
+        if (!panelAgents) return;
+        const isCurrentlyOpen = !panelAgents.classList.contains('panel--collapsed');
+        const willOpen = forceState !== null ? forceState : !isCurrentlyOpen;
+
+        if (willOpen) {
+            panelAgents.classList.remove('panel--collapsed');
+            if (resizerVBottom) resizerVBottom.classList.remove('resizer--hidden');
+            localStorage.setItem('cx_agents_open', 'true');
+        } else {
+            panelAgents.classList.add('panel--collapsed');
+            if (resizerVBottom) resizerVBottom.classList.add('resizer--hidden');
+            localStorage.setItem('cx_agents_open', 'false');
+        }
+    }
+
+    // 3. Toggle Bottom Row (Chat & Agents)
+    function toggleBottomRow(forceState = null) {
+        if (!bottomRow) return;
+        const isCurrentlyOpen = !bottomRow.classList.contains('main__bottom--collapsed');
+        const willOpen = forceState !== null ? forceState : !isCurrentlyOpen;
+
+        if (willOpen) {
+            bottomRow.classList.remove('main__bottom--collapsed');
+            if (topRow) topRow.classList.remove('main__top--expanded');
+            if (resizerH) resizerH.classList.remove('resizer--hidden');
+            if (toggleBottomBtn) toggleBottomBtn.classList.add('layout-toggle-btn--active');
+            localStorage.setItem('cx_bottom_open', 'true');
+        } else {
+            bottomRow.classList.add('main__bottom--collapsed');
+            if (topRow) topRow.classList.add('main__top--expanded');
+            if (resizerH) resizerH.classList.add('resizer--hidden');
+            if (toggleBottomBtn) toggleBottomBtn.classList.remove('layout-toggle-btn--active');
+            localStorage.setItem('cx_bottom_open', 'false');
+        }
+
+        setTimeout(() => {
+            if (state.monacoEditor) state.monacoEditor.layout();
+        }, 100);
+    }
+
+    // 4. Toggle Explorer Panel (Sidebar #2)
+    function toggleExplorer(forceState = null) {
+        if (!explorerPanel) return;
+        const isCurrentlyOpen = !explorerPanel.classList.contains('explorer-panel--hidden');
+        const willOpen = forceState !== null ? forceState : !isCurrentlyOpen;
+
+        if (willOpen) {
+            explorerPanel.classList.remove('explorer-panel--hidden');
+            if (resizerVExplorer) resizerVExplorer.classList.remove('resizer--hidden');
+            if (toggleExplorerBtn) toggleExplorerBtn.classList.add('layout-toggle-btn--active');
+            localStorage.setItem('cx_explorer_open', 'true');
+        } else {
+            explorerPanel.classList.add('explorer-panel--hidden');
+            if (resizerVExplorer) resizerVExplorer.classList.add('resizer--hidden');
+            if (toggleExplorerBtn) toggleExplorerBtn.classList.remove('layout-toggle-btn--active');
+            localStorage.setItem('cx_explorer_open', 'false');
+        }
+
+        setTimeout(() => {
+            if (state.monacoEditor) state.monacoEditor.layout();
+        }, 100);
+    }
+
+    // Event Bindings
+    if (togglePreviewBtn) togglePreviewBtn.addEventListener('click', () => togglePreview());
+    if (btnClosePreview) btnClosePreview.addEventListener('click', () => togglePreview(false));
+
+    if (toggleBottomBtn) toggleBottomBtn.addEventListener('click', () => toggleBottomRow());
+    if (toggleExplorerBtn) toggleExplorerBtn.addEventListener('click', () => toggleExplorer());
+
+    if (btnCloseAgents) btnCloseAgents.addEventListener('click', () => toggleAgents(false));
+
+    // Maximize Editor (Zen Mode)
+    if (btnMaximizeEditor) {
+        btnMaximizeEditor.addEventListener('click', () => {
+            const isPreviewOpen = !panelPreview.classList.contains('panel--collapsed');
+            const isBottomOpen = !bottomRow.classList.contains('main__bottom--collapsed');
+
+            if (isPreviewOpen || isBottomOpen) {
+                togglePreview(false);
+                toggleBottomRow(false);
+            } else {
+                togglePreview(true);
+                toggleBottomRow(true);
+            }
+        });
+    }
+
+    // Maximize Preview
+    if (btnMaximizePreview) {
+        btnMaximizePreview.addEventListener('click', () => {
+            const panelEditor = document.getElementById('panelEditor');
+            if (panelEditor) {
+                const isEditorCollapsed = panelEditor.classList.contains('panel--collapsed');
+                if (isEditorCollapsed) {
+                    panelEditor.classList.remove('panel--collapsed');
+                } else {
+                    panelEditor.classList.add('panel--collapsed');
+                }
+            }
+        });
+    }
+
+    // Restore Saved Layout States
+    const savedPreview = localStorage.getItem('cx_preview_open');
+    if (savedPreview === 'false') togglePreview(false);
+
+    const savedAgents = localStorage.getItem('cx_agents_open');
+    if (savedAgents === 'false') toggleAgents(false);
+
+    const savedBottom = localStorage.getItem('cx_bottom_open');
+    if (savedBottom === 'false') toggleBottomRow(false);
+
+    const savedExplorer = localStorage.getItem('cx_explorer_open');
+    if (savedExplorer === 'false') toggleExplorer(false);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initMonaco();
     initSidebar();
     initDeviceToggle();
     initEvents();
     initResizers();
+    initPanelToggles();
     loadTemplates();
     loadFileTree();
     initWebSocket();

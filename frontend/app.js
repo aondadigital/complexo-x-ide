@@ -949,18 +949,9 @@ function initExplorerActions() {
         } catch (e) {}
     });
 
-    // Button New Folder [📂]
-    document.getElementById('btnNewFolder')?.addEventListener('click', async () => {
-        const folderName = prompt('Nome da nova pasta (ex: components, routes):');
-        if (!folderName) return;
-        try {
-            await fetch(`${API_BASE}/fs/folder`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ path: folderName })
-            });
-            await loadFileTree();
-        } catch (e) {}
+    // Button Folder [📂] -> Opens Native Windows Folder Picker Dialog (showDirectoryPicker) directly!
+    document.getElementById('btnNewFolder')?.addEventListener('click', () => {
+        openFolderDialog();
     });
 
     // Button Refresh [🔄]

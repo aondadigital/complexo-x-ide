@@ -1,4 +1,8 @@
-﻿"""
+﻿try:
+    from backend.orchestrator import AgentXOrchestrator
+except ImportError:
+    from orchestrator import AgentXOrchestrator
+"""
 Complexo-X IDE — Backend API Gateway, Real Multi-Agent Orchestrator & Visual Inspector v2.5
 Orquestra tarefas paralelas para Gerente, Designer, Programador Poliglota, Marketeiro, SEO e Segurança de Banco de Dados.
 """

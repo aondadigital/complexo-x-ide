@@ -1,7 +1,14 @@
 /* ============================================
-   COMPLEXO-X IDE — Core Engine (v3.6)
+   COMPLEXO-X IDE — Core Engine (v3.7)
    complexo-x.com.br/ide
    ============================================ */
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
 const API_BASE = window.location.origin.includes('complexo-x.com.br')
     ? 'https://complexo-x.com.br/ide/api'
@@ -11,9 +18,29 @@ const API_BASE = window.location.origin.includes('complexo-x.com.br')
 
 const state = {
     files: {
-        'index.html': { lang: 'html', content: `<!DOCTYPE html>\n<html lang="pt-BR">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Complexo-X IDE</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <header class="hero">\n        <h1>Complexo-X IDE</h1>\n        <p>Ambiente agêntico com Motor Custo Zero.</p>\n    </header>\n</body>\n</html>` },
-        'style.css': { lang: 'css', content: `* { margin: 0; padding: 0; box-sizing: border-box; }\nbody { font-family: 'Inter', sans-serif; background: #0b0c10; color: #e8eaed; }\n.hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }\nh1 { font-size: 3rem; background: linear-gradient(135deg, #7c3aed, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }` },
-        'api.py': { lang: 'python', content: `from fastapi import FastAPI\napp = FastAPI(title="Complexo-X Core API")\n@app.get("/health")\ndef health(): return {"status": "online"}` }
+        'index.html': { lang: 'html', content: `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complexo-X IDE</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="hero">
+        <h1>Complexo-X IDE</h1>
+        <p>Ambiente agêntico com Motor Custo Zero.</p>
+    </header>
+</body>
+</html>` },
+        'style.css': { lang: 'css', content: `* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: #0b0c10; color: #e8eaed; }
+.hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+h1 { font-size: 3rem; background: linear-gradient(135deg, #7c3aed, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }` },
+        'api.py': { lang: 'python', content: `from fastapi import FastAPI
+app = FastAPI(title="Complexo-X Core API")
+@app.get("/health")
+def health(): return {"status": "online"}` }
     },
     activeFile: 'index.html',
     currentWorkspaceName: 'workspace',
@@ -323,26 +350,33 @@ async function loadFileTree() {
         const res = await fetch(`${API_BASE}/fs/tree`);
         if (!res.ok) throw new Error('API indisponível');
         const data = await res.json();
-        container.innerHTML = '';
         if (data.tree && data.tree.length > 0) {
+            container.innerHTML = '';
             const fragment = document.createDocumentFragment();
             data.tree.forEach(node => {
-                fragment.appendChild(renderTreeNode(node));
+                try {
+                    fragment.appendChild(renderTreeNode(node));
+                } catch(err){}
             });
             container.appendChild(fragment);
         } else {
-            container.innerHTML = '<div style="padding:16px 12px;font-size:12px;color:var(--text-dim);text-align:center;">Pasta vazia</div>';
+            renderDefaultFallbackTree(container);
         }
     } catch (e) {
-        container.innerHTML = `
-            <div class="tree-item tree-item--active" onclick="switchFile('index.html')">🌐 index.html</div>
-            <div class="tree-item" onclick="switchFile('style.css')">🎨 style.css</div>
-            <div class="tree-item" onclick="switchFile('api.py')">🐍 api.py</div>
-        `;
+        renderDefaultFallbackTree(container);
     }
 }
 
+function renderDefaultFallbackTree(container) {
+    container.innerHTML = `
+        <div class="tree-item tree-item--active" onclick="switchFile('index.html')">🌐 index.html</div>
+        <div class="tree-item" onclick="switchFile('style.css')">🎨 style.css</div>
+        <div class="tree-item" onclick="switchFile('api.py')">🐍 api.py</div>
+    `;
+}
+
 function renderTreeNode(node) {
+    if (!node || !node.name) return document.createElement('div');
     const wrapper = document.createElement('div');
     wrapper.className = 'tree-node';
 
@@ -361,9 +395,11 @@ function renderTreeNode(node) {
         childrenContainer.style.cssText = 'margin-left:14px;border-left:1px solid var(--border-subtle);padding-left:2px;display:none;';
 
         let isLoaded = false;
-        if (node.children && node.children.length > 0) {
+        if (node.children && Array.isArray(node.children) && node.children.length > 0) {
             node.children.forEach(child => {
-                childrenContainer.appendChild(renderTreeNode(child));
+                try {
+                    childrenContainer.appendChild(renderTreeNode(child));
+                } catch(err){}
             });
             isLoaded = true;
         }
@@ -379,7 +415,7 @@ function renderTreeNode(node) {
                 if (chevron) chevron.style.transform = 'rotate(90deg)';
 
                 try {
-                    const res = await fetch(`${API_BASE}/fs/tree?path=${encodeURIComponent(node.path)}`);
+                    const res = await fetch(`${API_BASE}/fs/tree?path=${encodeURIComponent(node.path || '')}`);
                     if (res.ok) {
                         const data = await res.json();
                         childrenContainer.innerHTML = '';
@@ -484,8 +520,7 @@ window.closeWorkspaceTab = function(e, fileName) {
 
 function initExplorerActions() {
     document.getElementById('btnNewFile')?.addEventListener('click', async () => {
-        const fileName = prompt('Nome do novo arquivo (ex: app.py, checkout.html):');
-        if (!fileName) return;
+        const fileName = `arquivo_${Date.now().toString().slice(-4)}.js`;
         try {
             await fetch(`${API_BASE}/fs/file`, {
                 method: 'POST',
@@ -543,7 +578,7 @@ function closeFolder() {
 
 window.chooseWorkspace = async function(path) {
     closeModal('workspaceModal');
-    const name = path.split('/').pop().split('\\').pop();
+    const name = path.split('/').pop().split(/[/\\]/).pop();
     state.currentWorkspaceName = name;
     try {
         await fetch(`${API_BASE}/fs/workspace/switch`, {
@@ -862,8 +897,7 @@ window.triggerNewFile = function() {
 };
 
 window.triggerNewFolder = function() {
-    const folderName = prompt('Nome da nova pasta:');
-    if (!folderName) return;
+    const folderName = `pasta_${Date.now().toString().slice(-4)}`;
     fetch(`${API_BASE}/fs/folder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -933,7 +967,9 @@ async function executeTerminalCommand(cmd) {
     const out = document.getElementById('terminalOutput');
     if (!out || !cmd.trim()) return;
 
-    out.innerHTML += `\n<span style="color:#10b981;">$ ${escapeHtml(cmd)}</span>\n`;
+    out.innerHTML += `
+<span style="color:#10b981;">$ ${escapeHtml(cmd)}</span>
+`;
     try {
         const res = await fetch(`${API_BASE}/terminal/exec`, {
             method: 'POST',
@@ -943,7 +979,8 @@ async function executeTerminalCommand(cmd) {
         const data = await res.json();
         out.innerHTML += `<span>${escapeHtml(data.output || '')}</span>`;
     } catch (e) {
-        out.innerHTML += `<span style="color:#ef4444;">Erro ao executar comando.</span>\n`;
+        out.innerHTML += `<span style="color:#ef4444;">Erro ao executar comando.</span>
+`;
     }
     out.scrollTop = out.scrollHeight;
 }
@@ -1063,13 +1100,6 @@ function initKeybindings() {
     document.getElementById('railBtnTerminal')?.addEventListener('click', () => {
         triggerToggleTerminal();
     });
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
 }
 
 window.closeModal = function(id) {

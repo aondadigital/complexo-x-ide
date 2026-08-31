@@ -137,7 +137,7 @@ function addAgentResponse(rawText, thoughtText = null, commandsCount = null, art
     if (commandsCount) {
         const cmds = document.createElement('div');
         cmds.className = 'agent-trace-card';
-        cmds.innerHTML = `<span>▼ Running ${commandsCount} commands</span> <span style="color:var(--accent-green);">✓ Sucesso</span>`;
+        cmds.innerHTML = `<span>▼ Running ${commandsCount}</span> <span style="color:var(--accent-green);">✓ Sucesso</span>`;
         container.appendChild(cmds);
     }
 

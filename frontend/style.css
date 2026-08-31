@@ -985,3 +985,111 @@ body.is-resizing #dragOverlay { display: block; }
     color: #e2e8f0;
     background: #242836;
 }
+/* Antigravity 1:1 Full-Width Engineering Feed */
+.chat-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px 24px;
+    overflow-y: auto;
+    background: #12141a;
+}
+
+.user-msg-card {
+    background: #1b1d26 !important;
+    border: 1px solid #2a2f3e !important;
+    border-radius: 8px !important;
+    padding: 12px 16px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    align-self: stretch !important;
+}
+
+.user-msg-pills {
+    display: flex;
+    gap: 6px;
+}
+
+.msg-pill {
+    font-size: 11px;
+    background: #252a38;
+    border: 1px solid #363d50;
+    color: #94a3b8;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.user-msg-text {
+    font-size: 13.5px;
+    color: #f1f5f9;
+    line-height: 1.5;
+    font-weight: 400;
+}
+
+/* Agent Response Container */
+.agent-response-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.agent-trace-card {
+    background: #161820;
+    border: 1px solid #262a38;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    width: 100%;
+}
+.agent-trace-card:hover {
+    background: #1c202a;
+    border-color: #3b4256;
+}
+
+.agent-response-text {
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: #e2e8f0;
+    padding: 4px 0;
+}
+
+.antigravity-artifact-card {
+    background: #161822;
+    border: 1px solid #282e40;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    width: 100%;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.antigravity-artifact-card:hover {
+    border-color: #7c3aed;
+    background: #1c2130;
+}
+
+.agent-action-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 6px;
+}

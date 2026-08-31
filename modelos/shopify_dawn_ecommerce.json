@@ -1,0 +1,31 @@
+﻿{
+  "id": "shopify_dawn_ecommerce",
+  "nome": "Shopify Dawn E-commerce",
+  "categoria": "ecommerce",
+  "descricao": "Loja virtual completa com vitrine, cálculo de frete (SuperFrete), checkout Pix dinâmico, grid de produtos e carrinho flutuante.",
+  "cores": {
+    "fundo": "#0b0c10",
+    "superficie": "#1f2833",
+    "primaria": "#66fcf1",
+    "secundaria": "#45a29e",
+    "texto": "#ffffff",
+    "texto_secundario": "#c5c6c7"
+  },
+  "tipografia": {
+    "familia": "Inter, sans-serif",
+    "h1": "48px",
+    "h2": "32px",
+    "corpo": "15px"
+  },
+  "layout": {
+    "border_radius": "12px",
+    "sombra": "0 8px 24px rgba(102, 252, 241, 0.15)",
+    "animacao": "fadeIn 0.3s ease"
+  },
+  "modulos_nativos": [
+    "pix_dinamico",
+    "superfrete_calculo",
+    "carrinho_flutuante",
+    "whatsapp_checkout"
+  ]
+}

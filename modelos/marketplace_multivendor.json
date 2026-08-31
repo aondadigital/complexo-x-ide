@@ -1,0 +1,31 @@
+﻿{
+  "id": "marketplace_multivendor",
+  "nome": "Marketplace Multi-Canais & Multi-Seller",
+  "categoria": "marketplace",
+  "descricao": "Plataforma de marketplace com split de pagamentos, integração Mercado Livre / Shopee, painel de lojista e catálogo unificado.",
+  "cores": {
+    "fundo": "#08090d",
+    "superficie": "#12141c",
+    "primaria": "#7c3aed",
+    "secundaria": "#06b6d4",
+    "texto": "#f3f4f6",
+    "texto_secundario": "#9ca3af"
+  },
+  "tipografia": {
+    "familia": "Inter, sans-serif",
+    "h1": "50px",
+    "h2": "34px",
+    "corpo": "15px"
+  },
+  "layout": {
+    "border_radius": "16px",
+    "sombra": "0 10px 30px rgba(124, 58, 237, 0.2)",
+    "animacao": "slideUp 0.4s ease"
+  },
+  "modulos_nativos": [
+    "split_pagamento",
+    "integracao_mercadolivre",
+    "integracao_shopee",
+    "nfe_automatica"
+  ]
+}

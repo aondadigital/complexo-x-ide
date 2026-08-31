@@ -400,11 +400,55 @@ def get_dir_tree(directory: Path) -> List[Dict[str, Any]]:
         pass
     return tree
 
+
+# --- Endpoints de Troca e Fechamento de Workspace / Pastas ---
+ACTIVE_WORKSPACE = {"path": str(BASE_DIR), "name": BASE_DIR.name}
+
+@app.get("/api/fs/workspaces")
+async def list_recent_workspaces():
+    recent = [
+        {"name": "IDE (Oficial)", "path": str(BASE_DIR), "type": "local"},
+        {"name": "workspace (Projetos)", "path": str(PROJECTS_DIR), "type": "workspace"},
+        {"name": "PROJETOS (Raiz)", "path": "D:/PROJETOS" if os.path.exists("D:/PROJETOS") else str(BASE_DIR.parent), "type": "drive"},
+        {"name": "PROJETO MÃE", "path": "D:/PROJETO MÃE" if os.path.exists("D:/PROJETO MÃE") else str(BASE_DIR), "type": "drive"},
+        {"name": "VPS (/opt)", "path": "/opt/complexo-x-ide" if os.path.exists("/opt/complexo-x-ide") else str(BASE_DIR), "type": "vps"}
+    ]
+    return {
+        "active": ACTIVE_WORKSPACE,
+        "recent": recent
+    }
+
+class SwitchWorkspaceRequest(BaseModel):
+    path: str
+
+@app.post("/api/fs/workspace/switch")
+async def switch_workspace(req: SwitchWorkspaceRequest):
+    global ACTIVE_WORKSPACE
+    target_path = Path(req.path)
+    if not target_path.exists():
+        # Cria se não existir
+        target_path.mkdir(parents=True, exist_ok=True)
+    
+    ACTIVE_WORKSPACE = {
+        "path": str(target_path).replace("\\", "/"),
+        "name": target_path.name or str(target_path)
+    }
+    return {"ok": True, "active": ACTIVE_WORKSPACE}
+
+@app.post("/api/fs/workspace/close")
+async def close_workspace():
+    global ACTIVE_WORKSPACE
+    ACTIVE_WORKSPACE = {"path": str(PROJECTS_DIR).replace("\\", "/"), "name": "workspace"}
+    return {"ok": True, "active": ACTIVE_WORKSPACE}
+
 @app.get("/api/fs/tree")
 async def get_file_tree(scope: str = "workspace"):
-    target_dir = PROJECTS_DIR if scope == "workspace" else BASE_DIR
+    target_dir = Path(ACTIVE_WORKSPACE["path"]) if ACTIVE_WORKSPACE.get("path") else BASE_DIR
+    if not target_dir.exists():
+        target_dir = BASE_DIR
     return {
-        "root": target_dir.name,
+        "root": ACTIVE_WORKSPACE.get("name", target_dir.name),
+        "path": str(target_dir).replace("\\", "/"),
         "tree": get_dir_tree(target_dir)
     }
 

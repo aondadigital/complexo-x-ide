@@ -18,7 +18,23 @@
             </div>
             <span class="topbar__title">COMPLEXO-X <span class="topbar__title--accent">IDE</span></span>
         </div>
-        <div class="topbar__center">
+                <div class="topbar__center">
+            <!-- WORKSPACE / FOLDER SELECTOR PILLS (ANTIGRAVITY STYLE) -->
+            <div class="workspace-pill-group">
+                <button class="ws-pill ws-pill--env" id="wsEnvBtn" title="Ambiente de Execução (Local / VPS)">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="1.5"/></svg>
+                    <span id="wsEnvLabel">Local</span>
+                </button>
+                <div class="ws-pill ws-pill--folder" id="wsFolderBtn" title="Pasta / Workspace Ativo (Clique para escolher)">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" stroke="currentColor" stroke-width="1.5"/></svg>
+                    <span id="wsFolderName">D:\PROJETOS\IDE</span>
+                    <span class="ws-pill__close" id="wsCloseBtn" title="Fechar Pasta">✕</span>
+                </div>
+                <button class="ws-pill ws-pill--add" id="wsAddFolderBtn" title="Abrir / Escolher Outra Pasta">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" stroke="currentColor" stroke-width="1.5"/><path d="M12 11v6M9 14h6" stroke="currentColor" stroke-width="1.5"/></svg>
+                </button>
+            </div>
+
             <div class="motor-badge">
                 <span class="motor-badge__dot"></span>
                 <span>Motor: Claude Opus</span>
@@ -189,6 +205,59 @@
         </div>
     </footer>
     <div id="dragOverlay"></div>
+    <!-- MODAL: Escolha de Pastas e Workspace -->
+    <div class="modal" id="workspaceModal">
+        <div class="modal__backdrop" onclick="closeModal('workspaceModal')"></div>
+        <div class="modal__content" style="max-width: 550px;">
+            <div class="modal__header">
+                <h2>📁 Escolher Pasta de Trabalho</h2>
+                <button class="modal__close" onclick="closeModal('workspaceModal')">✕</button>
+            </div>
+            <div style="padding: 20px;">
+                <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">Selecione uma pasta recente ou digite o caminho que deseja abrir na IDE:</p>
+                
+                <div class="ws-quick-list" id="wsQuickList">
+                    <div class="ws-list-item ws-list-item--active" onclick="chooseWorkspace('D:/PROJETOS/IDE')">
+                        <span class="ws-list-icon">📁</span>
+                        <div class="ws-list-info">
+                            <strong>D:\PROJETOS\IDE</strong>
+                            <small>Repositório Oficial do Complexo-X IDE</small>
+                        </div>
+                        <span class="ws-list-badge">Ativo</span>
+                    </div>
+                    <div class="ws-list-item" onclick="chooseWorkspace('D:/PROJETOS')">
+                        <span class="ws-list-icon">📂</span>
+                        <div class="ws-list-info">
+                            <strong>D:\PROJETOS</strong>
+                            <small>Todos os Projetos Locais</small>
+                        </div>
+                    </div>
+                    <div class="ws-list-item" onclick="chooseWorkspace('D:/PROJETO MÃE')">
+                        <span class="ws-list-icon">🏛️</span>
+                        <div class="ws-list-info">
+                            <strong>D:\PROJETO MÃE</strong>
+                            <small>Motor Custo Zero & Núcleo Base</small>
+                        </div>
+                    </div>
+                    <div class="ws-list-item" onclick="chooseWorkspace('/opt/complexo-x-ide')">
+                        <span class="ws-list-icon">☁️</span>
+                        <div class="ws-list-info">
+                            <strong>/opt/complexo-x-ide</strong>
+                            <small>Instalação de Produção na VPS</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle);">
+                    <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:6px;">Ou digite o caminho de uma pasta:</label>
+                    <div style="display:flex;gap:8px;">
+                        <input type="text" id="customWsInput" class="search-input" placeholder="Ex: D:\PROJETOS\NOVO_PROJETO ou /opt/app" style="flex:1;">
+                        <button class="btn btn--deploy" onclick="openCustomWorkspace()">Abrir Pasta</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body></html>"></iframe>
                     </div>
                 </section>
@@ -381,5 +450,58 @@
         </div>
     </footer>
     <div id="dragOverlay"></div>
+    <!-- MODAL: Escolha de Pastas e Workspace -->
+    <div class="modal" id="workspaceModal">
+        <div class="modal__backdrop" onclick="closeModal('workspaceModal')"></div>
+        <div class="modal__content" style="max-width: 550px;">
+            <div class="modal__header">
+                <h2>📁 Escolher Pasta de Trabalho</h2>
+                <button class="modal__close" onclick="closeModal('workspaceModal')">✕</button>
+            </div>
+            <div style="padding: 20px;">
+                <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">Selecione uma pasta recente ou digite o caminho que deseja abrir na IDE:</p>
+                
+                <div class="ws-quick-list" id="wsQuickList">
+                    <div class="ws-list-item ws-list-item--active" onclick="chooseWorkspace('D:/PROJETOS/IDE')">
+                        <span class="ws-list-icon">📁</span>
+                        <div class="ws-list-info">
+                            <strong>D:\PROJETOS\IDE</strong>
+                            <small>Repositório Oficial do Complexo-X IDE</small>
+                        </div>
+                        <span class="ws-list-badge">Ativo</span>
+                    </div>
+                    <div class="ws-list-item" onclick="chooseWorkspace('D:/PROJETOS')">
+                        <span class="ws-list-icon">📂</span>
+                        <div class="ws-list-info">
+                            <strong>D:\PROJETOS</strong>
+                            <small>Todos os Projetos Locais</small>
+                        </div>
+                    </div>
+                    <div class="ws-list-item" onclick="chooseWorkspace('D:/PROJETO MÃE')">
+                        <span class="ws-list-icon">🏛️</span>
+                        <div class="ws-list-info">
+                            <strong>D:\PROJETO MÃE</strong>
+                            <small>Motor Custo Zero & Núcleo Base</small>
+                        </div>
+                    </div>
+                    <div class="ws-list-item" onclick="chooseWorkspace('/opt/complexo-x-ide')">
+                        <span class="ws-list-icon">☁️</span>
+                        <div class="ws-list-info">
+                            <strong>/opt/complexo-x-ide</strong>
+                            <small>Instalação de Produção na VPS</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle);">
+                    <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:6px;">Ou digite o caminho de uma pasta:</label>
+                    <div style="display:flex;gap:8px;">
+                        <input type="text" id="customWsInput" class="search-input" placeholder="Ex: D:\PROJETOS\NOVO_PROJETO ou /opt/app" style="flex:1;">
+                        <button class="btn btn--deploy" onclick="openCustomWorkspace()">Abrir Pasta</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

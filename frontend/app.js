@@ -878,6 +878,103 @@ function initPanelToggles() {
     if (savedExplorer === 'false') toggleExplorer(false);
 }
 
+
+// ---- WORKSPACE & FOLDER SELECTOR LOGIC (ANTIGRAVITY STYLE) ----
+let currentWorkspacePath = 'D:/PROJETOS/IDE';
+
+async function initWorkspaceManager() {
+    const wsFolderBtn = document.getElementById('wsFolderBtn');
+    const wsAddFolderBtn = document.getElementById('wsAddFolderBtn');
+    const wsCloseBtn = document.getElementById('wsCloseBtn');
+    const wsEnvBtn = document.getElementById('wsEnvBtn');
+    const wsEnvLabel = document.getElementById('wsEnvLabel');
+
+    if (wsFolderBtn) {
+        wsFolderBtn.addEventListener('click', (e) => {
+            if (e.target.id === 'wsCloseBtn') return;
+            document.getElementById('workspaceModal')?.classList.add('modal--open');
+        });
+    }
+
+    if (wsAddFolderBtn) {
+        wsAddFolderBtn.addEventListener('click', () => {
+            document.getElementById('workspaceModal')?.classList.add('modal--open');
+        });
+    }
+
+    if (wsCloseBtn) {
+        wsCloseBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            try {
+                await fetch(`${API_BASE}/fs/workspace/close`, { method: 'POST' });
+                currentWorkspacePath = 'workspace';
+                updateWorkspaceUI('workspace (Padrão)');
+                await loadFileTree();
+                addChatMessage('Sistema', '📁', 'Pasta fechada. Retornado para o workspace padrão.', 'system');
+            } catch (err) {
+                updateWorkspaceUI('workspace');
+            }
+        });
+    }
+
+    if (wsEnvBtn && wsEnvLabel) {
+        wsEnvBtn.addEventListener('click', () => {
+            const isLocal = wsEnvLabel.textContent === 'Local';
+            wsEnvLabel.textContent = isLocal ? 'VPS' : 'Local';
+            addChatMessage('Sistema', '💻', `Ambiente de trabalho alternado para **${wsEnvLabel.textContent}**.`, 'system');
+        });
+    }
+
+    // Fetch initial active workspace from backend
+    try {
+        const res = await fetch(`${API_BASE}/fs/workspaces`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.active && data.active.name) {
+                currentWorkspacePath = data.active.path;
+                updateWorkspaceUI(data.active.name);
+            }
+        }
+    } catch (e) {}
+}
+
+function updateWorkspaceUI(name) {
+    const wsFolderName = document.getElementById('wsFolderName');
+    const explorerRootName = document.getElementById('explorerRootName');
+    if (wsFolderName) wsFolderName.textContent = name;
+    if (explorerRootName) explorerRootName.textContent = name.toUpperCase();
+}
+
+window.chooseWorkspace = async function(path) {
+    closeModal('workspaceModal');
+    currentWorkspacePath = path;
+    const name = path.split('/').pop().split('\\').pop();
+    updateWorkspaceUI(name || path);
+
+    try {
+        const res = await fetch(`${API_BASE}/fs/workspace/switch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: path })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.active) updateWorkspaceUI(data.active.name);
+        }
+    } catch (e) {}
+
+    await loadFileTree();
+    addChatMessage('Sistema', '📁', `Pasta de trabalho alterada para: **${path}**. Arquivos carregados no Explorer.`, 'system');
+};
+
+window.openCustomWorkspace = function() {
+    const input = document.getElementById('customWsInput');
+    const path = input ? input.value.trim() : '';
+    if (path) {
+        chooseWorkspace(path);
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     initMonaco();
     initSidebar();
@@ -885,6 +982,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initEvents();
     initResizers();
     initPanelToggles();
+    initWorkspaceManager();
     loadTemplates();
     loadFileTree();
     initWebSocket();

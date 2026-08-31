@@ -286,14 +286,14 @@
                         </div>
                     </div>
                     <div class="panel__body chat-body" id="chatMessages">
-                        <div class="chat-welcome">
-                            <div class="chat-welcome__icon">🚀</div>
-                            <h3>Complexo-X IDE — Agente-X</h3>
-                            <p>Descreva o que deseja construir. A equipe de especialistas autônomos planeja, programa, desenha e audita para você.</p>
-                            <div class="chat-welcome__examples">
-                                <button class="example-btn" onclick="setPrompt(this.textContent)">Criar loja virtual com vitrine, frete e checkout Pix dinâmico</button>
-                                <button class="example-btn" onclick="setPrompt(this.textContent)">Construir plataforma SaaS com banco PostgreSQL/SQLite WAL e autenticação</button>
-                                <button class="example-btn" onclick="setPrompt(this.textContent)">Gerar landing page ultra-conversiva estilo Stripe Dark com SEO nota 100</button>
+                        <div class="chat-welcome" style="padding: 40px 20px; text-align: center;">
+                            <div class="chat-welcome__icon" style="font-size: 32px; margin-bottom: 8px;">✦</div>
+                            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Complexo-X IDE</h3>
+                            <p style="font-size: 12.5px; color: var(--text-muted); max-width: 420px; margin: 0 auto 16px;">Como posso ajudar no seu projeto hoje?</p>
+                            <div class="chat-welcome__examples" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
+                                <button class="example-btn" onclick="setPrompt(this.textContent)">Criar loja virtual com vitrine, frete e Pix</button>
+                                <button class="example-btn" onclick="setPrompt(this.textContent)">Construir plataforma SaaS com banco PostgreSQL</button>
+                                <button class="example-btn" onclick="setPrompt(this.textContent)">Gerar landing page estilo Stripe Dark</button>
                             </div>
                         </div>
                     </div>
@@ -301,7 +301,7 @@
                     <!-- FLOATING PROMPT INPUT BOX (ANTIGRAVITY GRADE) -->
                     <div class="chat-input-area">
                         <div class="antigravity-input-container">
-                            <textarea id="chatInput" class="antigravity-textarea" placeholder="Envie uma instrução ou descreva uma missão para a equipe..." rows="2"></textarea>
+                            <textarea id="chatInput" class="antigravity-textarea" placeholder="Pergunte qualquer coisa, @ para mencionar, / para ações..." rows="2"></textarea>
                             
                             <div class="antigravity-input-toolbar">
                                 <div class="toolbar-left">

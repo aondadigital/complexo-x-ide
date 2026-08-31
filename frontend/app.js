@@ -222,7 +222,7 @@ async function loadTemplates() {
 window.applyTemplate = function(templateId) {
     state.selectedTemplate = templateId;
     closeModal('templatesModal');
-    addChatMessage('Sistema', '🎨', `Modelo **${templateId}** ativado na prancheta de design.`, 'system');
+    // removed addChatMessage('Sistema', '🎨', `Modelo **${templateId}** ativado na prancheta de design.`, 'system');
     setPrompt(`Construa um projeto moderno usando como base visual o modelo ${templateId}`);
 };
 
@@ -653,7 +653,7 @@ function initEvents() {
             const chosen = models[currentModelIdx];
             selectedModelNameEl.textContent = chosen;
             if (statusMotorEl) statusMotorEl.textContent = chosen;
-            addChatMessage('Sistema', '⚡', `Motor de IA alternado para **${chosen}**.`, 'system');
+            // removed addChatMessage('Sistema', '⚡', `Motor de IA alternado para **${chosen}**.`, 'system');
         });
     }
 
@@ -693,15 +693,15 @@ function initEvents() {
             const target = tab.dataset.bottomTab;
             
             if (target === 'terminal') {
-                addChatMessage('Terminal', '💻', `[systemd] complexo-x-ide.service: active (running)\n[nginx] proxy 127.0.0.1:5170 -> https://complexo-x.com.br/ide/\n[websocket] /ws/telemetry connected\n[db] SQLite WAL Mode enabled (PRAGMA busy_timeout=5000)`, 'system');
+                // addChatMessage('Terminal', '💻', `[systemd] complexo-x-ide.service: active (running)\n[nginx] proxy 127.0.0.1:5170 -> https://complexo-x.com.br/ide/\n[websocket] /ws/telemetry connected\n[db] SQLite WAL Mode enabled (PRAGMA busy_timeout=5000)`, 'system');
             } else if (target === 'security') {
-                addChatMessage('Segurança', '🛡️', `🛡️ **Relatório de Blindagem de Dados:**\n• SQL Injection: ZERO (Prepared Statements)\n• SQLite WAL: Ativo (Zero Lockups)\n• Criptografia: Bcrypt / AES-256\n• Rate Limiter: Ativo (Token Bucket Shield)\n• HTTP Security Headers: Injetados`, 'agent');
+                // addChatMessage('Segurança', '🛡️', `🛡️ **Relatório de Blindagem de Dados:**\n• SQL Injection: ZERO (Prepared Statements)\n• SQLite WAL: Ativo (Zero Lockups)\n• Criptografia: Bcrypt / AES-256\n• Rate Limiter: Ativo (Token Bucket Shield)\n• HTTP Security Headers: Injetados`, 'agent');
             }
         });
     });
 
     document.getElementById('btnDeploy').addEventListener('click', () => {
-        addChatMessage('Sistema', '🚀', 'Deploy em 1 clique solicitado! Sincronizando com a VPS...', 'system');
+        // removed addChatMessage('Sistema', '🚀', 'Deploy em 1 clique solicitado! Sincronizando com a VPS...', 'system');
     });
 
     document.querySelectorAll('.chip').forEach(chip => {

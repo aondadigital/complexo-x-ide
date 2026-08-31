@@ -1,4 +1,93 @@
-﻿/* ============================================
+﻿
+// ---- STEP 1: MONACO DIFF EDITOR (REVIEW CHANGES) ----
+let diffEditorInstance = null;
+let previousFilesState = {
+    'index.html': `<!DOCTYPE html>\n<html lang="pt-BR">\n<head>\n    <meta charset="UTF-8">\n    <title>Original</title>\n</head>\n<body>\n    <h1>Versão Anterior</h1>\n</body>\n</html>`,
+    'style.css': `body { background: #000; color: #fff; }`,
+    'api.py': `from fastapi import FastAPI\napp = FastAPI()`
+};
+
+function openDiffViewer(filename = 'index.html') {
+    const viewPreview = document.getElementById('viewPreview');
+    const viewEditor = document.getElementById('viewEditor');
+    let viewDiff = document.getElementById('viewDiff');
+
+    if (!viewDiff) {
+        viewDiff = document.createElement('div');
+        viewDiff.id = 'viewDiff';
+        viewDiff.className = 'workspace-view workspace-view--diff';
+        viewDiff.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;';
+        viewDiff.innerHTML = `
+            <div style="height:35px;background:#14161f;border-bottom:1px solid #282d3c;display:flex;align-items:center;justify-content:space-between;padding:0 12px;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#cbd5e1;">
+                    <span>🔍 Comparação de Alterações (Diff):</span>
+                    <span style="color:#a78bfa;" id="diffFileName">${filename}</span>
+                </div>
+                <div style="display:flex;gap:6px;">
+                    <button class="btn btn--deploy" style="padding:3px 10px;font-size:11px;background:#10b981;" id="btnAcceptDiff">✓ Aceitar Alterações</button>
+                    <button class="btn" style="padding:3px 10px;font-size:11px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;" id="btnRejectDiff">✕ Rejeitar</button>
+                </div>
+            </div>
+            <div id="monacoDiffContainer" style="flex:1;width:100%;"></div>
+        `;
+        document.querySelector('.workspace-views').appendChild(viewDiff);
+
+        document.getElementById('btnAcceptDiff').addEventListener('click', () => {
+            previousFilesState[state.activeFile] = state.files[state.activeFile].content;
+            closeDiffViewer();
+            addAgentResponse("✓ Alterações de código aceitas e aplicadas com sucesso no Workspace.", null, null, { title: "Código Atualizado", summary: "Alterações confirmadas no projeto." });
+        });
+
+        document.getElementById('btnRejectDiff').addEventListener('click', () => {
+            state.files[state.activeFile].content = previousFilesState[state.activeFile];
+            if (state.monacoEditor) {
+                state.monacoEditor.setValue(previousFilesState[state.activeFile]);
+            }
+            updatePreview();
+            closeDiffViewer();
+        });
+    }
+
+    if (viewPreview) viewPreview.style.display = 'none';
+    if (viewEditor) viewEditor.style.display = 'none';
+    viewDiff.style.display = 'flex';
+
+    const diffContainer = document.getElementById('monacoDiffContainer');
+    if (!diffContainer) return;
+
+    if (!diffEditorInstance && typeof monaco !== 'undefined') {
+        diffEditorInstance = monaco.editor.createDiffEditor(diffContainer, {
+            theme: 'antigravity-dark',
+            automaticLayout: true,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 13,
+            lineHeight: 22,
+            readOnly: false,
+            renderSideBySide: true
+        });
+    }
+
+    if (diffEditorInstance && typeof monaco !== 'undefined') {
+        const origContent = previousFilesState[filename] || '';
+        const modContent = state.files[filename]?.content || '';
+        const lang = state.files[filename]?.lang || 'plaintext';
+
+        diffEditorInstance.setModel({
+            original: monaco.editor.createModel(origContent, lang),
+            modified: monaco.editor.createModel(modContent, lang)
+        });
+    }
+}
+
+function closeDiffViewer() {
+    const viewDiff = document.getElementById('viewDiff');
+    if (viewDiff) viewDiff.style.display = 'none';
+    const viewPreview = document.getElementById('viewPreview');
+    if (viewPreview) viewPreview.style.display = 'block';
+    updatePreview();
+}
+
+/* ============================================
    ANTIGRAVITY IDE — 1:1 Engine & Interaction Logic
    complexo-x.com.br/ide
    ============================================ */
@@ -683,6 +772,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('chatInput')?.addEventListener('input', function() {
         this.style.height = 'auto';
         this.style.height = Math.min(this.scrollHeight, 160) + 'px';
+    });
+
+        document.getElementById('btnReviewChanges')?.addEventListener('click', () => {
+        openDiffViewer(state.activeFile || 'index.html');
     });
 
     document.getElementById('btnExportZip')?.addEventListener('click', () => {

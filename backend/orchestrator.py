@@ -1,16 +1,4 @@
-﻿SUPER_ANTIGRAVITY_DIR = Path("D:/SUPER_ANTIGRAVITY/SKILLS_SISTEMA") if os.path.exists("D:/SUPER_ANTIGRAVITY/SKILLS_SISTEMA") else (BASE_DIR / "skills")
-
-def load_super_skills() -> Dict[str, str]:
-    skills = {}
-    if SUPER_ANTIGRAVITY_DIR.exists():
-        for skill_file in SUPER_ANTIGRAVITY_DIR.glob("*.md"):
-            try:
-                skills[skill_file.stem] = skill_file.read_text(encoding="utf-8")
-            except Exception:
-                pass
-    return skills
-
-"""
+﻿"""
 Complexo-X IDE — Agente-X Dedicated Orchestrator Engine (v3.0)
 Instância autônoma e isolada do Agente-X para orquestração da equipe de especialistas.
 Garante total isolamento e preservação do Projeto Mãe.
@@ -33,6 +21,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SOULS_DIR = BASE_DIR / "souls"
 MODELS_DIR = BASE_DIR / "modelos"
 PROJECTS_DIR = BASE_DIR / "workspace"
+SUPER_ANTIGRAVITY_DIR = Path("D:/SUPER_ANTIGRAVITY/SKILLS_SISTEMA") if os.path.exists("D:/SUPER_ANTIGRAVITY/SKILLS_SISTEMA") else (BASE_DIR / "skills")
+
+def load_super_skills() -> Dict[str, str]:
+    skills = {}
+    if SUPER_ANTIGRAVITY_DIR.exists():
+        for skill_file in SUPER_ANTIGRAVITY_DIR.glob("*.md"):
+            try:
+                skills[skill_file.stem] = skill_file.read_text(encoding="utf-8")
+            except Exception:
+                pass
+    return skills
 
 class AgentXOrchestrator:
     """
@@ -59,22 +58,11 @@ class AgentXOrchestrator:
         return souls
 
     async def run_mission(self, prompt: str, template_id: str = "shopify_dawn_ecommerce", workspace_path: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Executa o pipeline completo:
-        1. Gerente planeja
-        2. Designer + Marketeiro geram tokens e copy em paralelo
-        3. Programador constrói código e backend
-        4. Segurança audita banco e APIs + SEO otimiza tags
-        5. Visual Inspector cura o layout
-        6. Grava no workspace e retorna payload
-        """
-        # 1. Planejamento do Gerente
         await self.broadcast({
             "type": "agent_update", "agent": "gerente", "status": "working", "progress": 20,
             "task": f"Decompondo missão: '{prompt}'. Ativando especialistas..."
         })
 
-        # Carrega Modelo Visual
         tmpl_data = {}
         tmpl_file = MODELS_DIR / f"{template_id}.json"
         if tmpl_file.exists():
@@ -83,23 +71,18 @@ class AgentXOrchestrator:
             except Exception:
                 pass
 
-        # 2. Execução Paralela: Designer + Marketeiro
         designer_task = self._run_designer(prompt, tmpl_data)
         marketer_task = self._run_marketer(prompt)
         designer_res, copy_res = await asyncio.gather(designer_task, marketer_task)
 
-        # 3. Programador Poliglota
         prog_res = await self._run_programmer(prompt, copy_res)
 
-        # 4. Segurança & Banco + SEO em Paralelo
         sec_task = self._run_security(prog_res["api_py"], prog_res["html"])
         seo_task = self._run_seo(prog_res["html"])
         sec_res, final_html = await asyncio.gather(sec_task, seo_task)
 
-        # 5. Visual Inspector & Self-Healing
         healed_html, healed_css, report = VisualInspector.audit_and_heal(final_html, designer_res["css"])
 
-        # 6. Gravação Segura no Workspace Ativo
         target_dir = Path(workspace_path) if workspace_path else (PROJECTS_DIR / "default")
         target_dir.mkdir(parents=True, exist_ok=True)
 
@@ -116,7 +99,6 @@ class AgentXOrchestrator:
             "workspace": str(target_dir).replace("\\", "/")
         }
 
-        # Conclusão do Gerente
         await self.broadcast({
             "type": "project_payload",
             "html": healed_html,

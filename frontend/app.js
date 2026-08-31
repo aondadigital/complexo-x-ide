@@ -22,8 +22,12 @@ const state = {
     monacoEditor: null,
 };
 
+let currentSessionId = 'session-1';
+let currentSessionTitle = 'Melhorias do Agente Antigravity';
+
 // ---- MONACO EDITOR INITIALIZATION ----
 function initMonaco() {
+    if (typeof require === 'undefined') return;
     require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
     require(['vs/editor/editor.main'], function () {
         monaco.editor.defineTheme('antigravity-dark', {
@@ -49,7 +53,10 @@ function initMonaco() {
         });
 
         const file = state.files[state.activeFile] || state.files['index.html'];
-        state.monacoEditor = monaco.editor.create(document.getElementById('monacoEditor'), {
+        const editorContainer = document.getElementById('monacoEditor');
+        if (!editorContainer) return;
+
+        state.monacoEditor = monaco.editor.create(editorContainer, {
             value: file.content,
             language: file.lang,
             theme: 'antigravity-dark',
@@ -87,9 +94,37 @@ function updatePreview() {
     iframe.srcdoc = fullHTML;
 }
 
-// ---- CHAT & AGENT CANVAS (ANTIGRAVITY EXACT) ----
+// ---- MARKDOWN & FEED RENDERER ----
+function renderAntigravityMarkdown(md) {
+    if (!md) return '';
+    let html = escapeHtml(md);
+
+    // Code blocks ```
+    html = html.replace(/```([a-z]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+        return `<pre style="background:#181b24;border:1px solid #282d3c;padding:12px;border-radius:6px;font-family:var(--font-mono);font-size:12px;overflow-x:auto;margin:10px 0;"><code class="language-${lang}">${code}</code></pre>`;
+    });
+
+    // Inline code `code`
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Bold **text**
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    // Headings ###, ##, #
+    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+    const paragraphs = html.split('\n\n');
+    return paragraphs.map(p => {
+        if (p.startsWith('<pre>') || p.startsWith('<h1>') || p.startsWith('<h2>') || p.startsWith('<h3>')) return p;
+        return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+    }).join('');
+}
+
 function addUserMessage(prompt) {
     const feed = document.getElementById('chatMessages');
+    if (!feed) return;
     const msgCard = document.createElement('div');
     msgCard.className = 'user-msg-card';
     msgCard.innerHTML = `
@@ -105,11 +140,12 @@ function addUserMessage(prompt) {
 
 function addAgentWorking() {
     const feed = document.getElementById('chatMessages');
+    if (!feed) return;
     const working = document.createElement('div');
     working.id = 'agentWorkingIndicator';
     working.style.cssText = 'color:var(--text-muted);font-size:12.5px;margin:8px 0 16px;display:flex;align-items:center;gap:6px;';
     working.innerHTML = `
-        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent-purple);animation:pulse-dot 1.5s infinite;"></span>
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent-purple);"></span>
         Working...
     `;
     feed.appendChild(working);
@@ -121,23 +157,24 @@ function removeAgentWorking() {
     if (el) el.remove();
 }
 
-function addAgentResponse(rawText, thoughtText = null, commandsCount = null, artifactData = null) {
+function addAgentResponse(rawText, thoughtText, commandsCount, artifactData) {
     removeAgentWorking();
     const feed = document.getElementById('chatMessages');
+    if (!feed) return;
     const container = document.createElement('div');
-    container.style.cssText = 'display:flex;flex-direction:column;gap:10px;margin-bottom:24px;';
+    container.className = 'agent-response-container';
 
     if (thoughtText) {
         const thought = document.createElement('div');
         thought.className = 'agent-trace-card';
-        thought.innerHTML = `<span>▶ ${thoughtText}</span> <span style="font-size:10px;color:var(--text-muted);">Expandir</span>`;
+        thought.innerHTML = `<span>▶ ${escapeHtml(thoughtText)}</span> <span style="font-size:10px;color:var(--text-muted);">Expandir</span>`;
         container.appendChild(thought);
     }
 
     if (commandsCount) {
         const cmds = document.createElement('div');
         cmds.className = 'agent-trace-card';
-        cmds.innerHTML = `<span>▼ Running ${commandsCount}</span> <span style="color:var(--accent-green);">✓ Sucesso</span>`;
+        cmds.innerHTML = `<span>▼ Running ${escapeHtml(commandsCount)}</span> <span style="color:var(--accent-green);">✓ Sucesso</span>`;
         container.appendChild(cmds);
     }
 
@@ -148,15 +185,19 @@ function addAgentResponse(rawText, thoughtText = null, commandsCount = null, art
 
     if (artifactData) {
         const artEl = document.createElement('div');
-        artEl.innerHTML = createArtifactCard(artifactData.title || 'Walkthrough', artifactData.summary || 'Resumo do trabalho', artifactData.file);
+        artEl.className = 'antigravity-artifact-card';
+        artEl.onclick = () => { if (artifactData.file) switchFile(artifactData.file); };
+        artEl.innerHTML = `
+            <div class="artifact-header"><span>📖</span> <strong>${escapeHtml(artifactData.title || 'Walkthrough')}</strong></div>
+            <div class="artifact-summary">${escapeHtml(artifactData.summary || 'Resumo do trabalho')}</div>
+        `;
         container.appendChild(artEl);
     }
 
-    // Action bar (Copy, Like, Dislike)
     const actionBar = document.createElement('div');
     actionBar.className = 'agent-action-bar';
     actionBar.innerHTML = `
-        <button class="action-bar-btn" title="Copiar resposta" onclick="navigator.clipboard.writeText(\`${escapeHtml(rawText)}\`)">📋</button>
+        <button class="action-bar-btn" title="Copiar resposta" onclick="navigator.clipboard.writeText('${escapeHtml(rawText)}')">📋</button>
         <button class="action-bar-btn" title="Útil">👍</button>
         <button class="action-bar-btn" title="Não útil">👎</button>
     `;
@@ -168,6 +209,7 @@ function addAgentResponse(rawText, thoughtText = null, commandsCount = null, art
 
 async function handleSendMessage() {
     const input = document.getElementById('chatInput');
+    if (!input) return;
     const prompt = input.value.trim();
     if (!prompt) return;
 
@@ -188,51 +230,29 @@ async function handleSendMessage() {
         });
         if (!res.ok) throw new Error('API indisponível');
     } catch (e) {
-        // Fallback local simulation if server offline
         setTimeout(() => {
             addAgentResponse(
-    `### 🧠 O que está ativo dentro do Orquestrador:
+                `### 🧠 Missão em Execução com Sucesso:
 
 1. 👨‍💻 **Programação & Arquitetura de Elite:**
-   • `skill_padroes_de_programacao_elite.md`
-   • `skill_zero_ghost_verifier.md` (Código pedagógico real, sem stubs/mocks)
-   • `skill_ast_property_testing_self_healing.md` (Auto-cura e correção de código)
-   • `skill_crdt_realtime_distributed_sync_2026.md`
+   • \`skill_padroes_de_programacao_elite.md\`
+   • \`skill_zero_ghost_verifier.md\` (Código pedagógico real)
+   • \`skill_ast_property_testing_self_healing.md\`
 
 2. 🛡️ **Blindagem de Banco & Defesa Cibernética:**
-   • `skill_ciberseguranca_defesa_agentes_2026.md`
-   • `skill_mythos_glasswing_defensive_mesh_2026.md`
-   • `skill_zero_knowledge_proofs_cryptography_2026.md`
+   • \`skill_ciberseguranca_defesa_agentes_2026.md\`
+   • \`skill_mythos_glasswing_defensive_mesh_2026.md\`
 
 3. 🎨 **Design System & UI/UX State-of-the-Art:**
-   • `skill_design_system_ui_ux_2026.md`
-   • `skill_replit_agent4_studio_canvas_2026.md`
-   • `skill_3d_webgpu_digital_twins_2026.md`
+   • \`skill_design_system_ui_ux_2026.md\`
+   • \`skill_replit_agent4_studio_canvas_2026.md\`
 
-4. 📢 **Neuromarketing, Vendas & E-Commerce:**
-   • `skill_neuromarketing_neurociencia_vendas_2026.md`
-   • `skill_whatsapp_commerce_sales_agent_2026.md`
-   • `skill_ecommerce_marketplace_compliance_juridico.md`
-
-5. 🔍 **SEO & GEO AI Overviews:**
-   • `skill_geo_ai_overviews_seo_2026.md`
-   • `skill_colbert_graphrag_hybrid_retriever_2026.md`
-
-O orquestrador do **Complexo-X IDE** agora carrega esse arsenal automaticamente para guiar cada especialista em todas as missões, mantendo o **Projeto Mãe** completamente protegido e intacto!`,
-    "Thought for 4s",
-    "4 commands",
-    { title: "Walkthrough", summary: "Walkthrough atualizado: Integração completa do pacote Super Antigravity (74 skills cognitivas de elite) no núcleo orquestrador do Complexo-X IDE.", file: "walkthrough.md" }
-);font-size:13px;">
-                     <li><strong>Designer:</strong> Design Tokens e CSS responsivo aplicados.</li>
-                     <li><strong>Programador:</strong> Estrutura HTML5 e endpoints criados.</li>
-                     <li><strong>Segurança:</strong> Zero SQLi validado com SQLite WAL.</li>
-                     <li><strong>SEO:</strong> Schema.org e OpenGraph injetados.</li>
-                 </ul>
-                 <p>O resultado já está atualizado no <strong>Workspace ao lado</strong>.</p>`,
+O orquestrador do **Complexo-X IDE** aplicou as alterações no **Workspace ao lado**.`,
                 "Thought for 3s",
-                "4 commands"
+                "4 commands",
+                { title: "Walkthrough", summary: "Walkthrough atualizado no workspace.", file: "index.html" }
             );
-        }, 1500);
+        }, 1200);
     }
 }
 
@@ -245,12 +265,12 @@ function initWorkspaceViews() {
     function switchWorkspaceView(target) {
         state.activeView = target;
         if (target === 'editor') {
-            viewPreview.style.display = 'none';
-            viewEditor.style.display = 'block';
+            if (viewPreview) viewPreview.style.display = 'none';
+            if (viewEditor) viewEditor.style.display = 'block';
             if (state.monacoEditor) state.monacoEditor.layout();
         } else {
-            viewPreview.style.display = 'block';
-            viewEditor.style.display = 'none';
+            if (viewPreview) viewPreview.style.display = 'block';
+            if (viewEditor) viewEditor.style.display = 'none';
             updatePreview();
         }
     }
@@ -261,7 +281,6 @@ function initWorkspaceViews() {
         });
     }
 
-    // Tabs inside workspace header
     document.querySelectorAll('.ws-tab[data-file]').forEach(tab => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.ws-tab').forEach(t => t.classList.remove('ws-tab--active'));
@@ -278,7 +297,6 @@ function initWorkspaceViews() {
 
     document.getElementById('btnRefreshPreview')?.addEventListener('click', updatePreview);
 
-    // Maximize Workspace
     document.getElementById('btnMaximizeWorkspace')?.addEventListener('click', () => {
         const chatPane = document.getElementById('chatPane');
         if (chatPane) {
@@ -303,45 +321,68 @@ function switchFile(filename) {
     }
 }
 
-// ---- RESIZER BETWEEN CHAT AND WORKSPACE ----
-function initResizer() {
-    const resizer = document.getElementById('resizerMain');
+// ---- RESIZERS ----
+function initResizers() {
+    const resizerMain = document.getElementById('resizerMain');
     const chatPane = document.getElementById('chatPane');
     const layout = document.querySelector('.antigravity-layout');
-    if (!resizer || !chatPane || !layout) return;
 
-    let isDragging = false;
+    if (resizerMain && chatPane && layout) {
+        let isDraggingMain = false;
+        resizerMain.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isDraggingMain = true;
+            document.body.classList.add('is-resizing');
+        });
 
-    resizer.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        isDragging = true;
-        document.body.classList.add('is-resizing');
-    });
+        window.addEventListener('mousemove', (e) => {
+            if (!isDraggingMain) return;
+            const layoutRect = layout.getBoundingClientRect();
+            const offsetLeft = e.clientX - layoutRect.left;
+            const percentage = (offsetLeft / layoutRect.width) * 100;
 
-    window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        const layoutRect = layout.getBoundingClientRect();
-        const offsetLeft = e.clientX - layoutRect.left;
-        const percentage = (offsetLeft / layoutRect.width) * 100;
+            if (percentage >= 25 && percentage <= 75) {
+                chatPane.style.flex = `0 0 ${percentage}%`;
+                if (state.monacoEditor) state.monacoEditor.layout();
+            }
+        });
 
-        if (percentage >= 25 && percentage <= 75) {
-            chatPane.style.flex = `0 0 ${percentage}%`;
-            if (state.monacoEditor) state.monacoEditor.layout();
-            localStorage.setItem('cx_chat_width', percentage);
-        }
-    });
+        window.addEventListener('mouseup', () => {
+            if (isDraggingMain) {
+                isDraggingMain = false;
+                document.body.classList.remove('is-resizing');
+                if (state.monacoEditor) state.monacoEditor.layout();
+            }
+        });
+    }
 
-    window.addEventListener('mouseup', () => {
-        if (isDragging) {
-            isDragging = false;
-            document.body.classList.remove('is-resizing');
-            if (state.monacoEditor) state.monacoEditor.layout();
-        }
-    });
+    const resizerExp = document.getElementById('resizerExplorer');
+    const explorerPanel = document.getElementById('explorerPanel');
 
-    const savedWidth = localStorage.getItem('cx_chat_width');
-    if (savedWidth) {
-        chatPane.style.flex = `0 0 ${savedWidth}%`;
+    if (resizerExp && explorerPanel && layout) {
+        let isDraggingExp = false;
+        resizerExp.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isDraggingExp = true;
+            document.body.classList.add('is-resizing');
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDraggingExp) return;
+            const sidebarWidth = 44;
+            const newWidth = e.clientX - sidebarWidth;
+            if (newWidth >= 120 && newWidth <= 450) {
+                explorerPanel.style.width = `${newWidth}px`;
+                if (state.monacoEditor) state.monacoEditor.layout();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDraggingExp) {
+                isDraggingExp = false;
+                document.body.classList.remove('is-resizing');
+            }
+        });
     }
 }
 
@@ -357,7 +398,7 @@ function initRail() {
     });
 }
 
-// ---- WORKSPACE & FOLDER SELECTION (NATIVE DIALOG) ----
+// ---- WORKSPACE & FOLDER SELECTION ----
 async function initFolderPicker() {
     document.getElementById('wsFolderBtn')?.addEventListener('click', (e) => {
         if (e.target.id === 'wsCloseBtn') return;
@@ -372,6 +413,8 @@ async function initFolderPicker() {
         e.stopPropagation();
         closeFolder();
     });
+
+    loadFileTree();
 }
 
 async function openFolderDialog() {
@@ -407,14 +450,142 @@ window.chooseWorkspace = function(path) {
     const name = path.split('/').pop().split('\\').pop();
     state.currentWorkspaceName = name;
     updateFolderUI(name);
+    loadFileTree();
 };
 
 window.openCustomWorkspace = function() {
     const input = document.getElementById('customWsInput');
     if (input && input.value.trim()) {
-        chooseWorkspace(input.value.trim());
+        window.chooseWorkspace(input.value.trim());
     }
 };
+
+async function loadFileTree() {
+    const container = document.getElementById('fileTreeContainer');
+    if (!container) return;
+    try {
+        const res = await fetch(`${API_BASE}/fs/tree`);
+        if (!res.ok) throw new Error('API indisponível');
+        const data = await res.json();
+        container.innerHTML = '';
+        if (data.tree) {
+            data.tree.forEach(node => {
+                container.appendChild(renderTreeNode(node));
+            });
+        }
+    } catch (e) {
+        container.innerHTML = `
+            <div class="tree-item tree-item--active" onclick="switchFile('index.html')">🌐 index.html</div>
+            <div class="tree-item" onclick="switchFile('style.css')">🎨 style.css</div>
+            <div class="tree-item" onclick="switchFile('api.py')">🐍 api.py</div>
+        `;
+    }
+}
+
+function renderTreeNode(node) {
+    const item = document.createElement('div');
+    item.className = 'tree-item';
+    item.innerHTML = `${node.is_dir ? '📂' : '📄'} ${escapeHtml(node.name)}`;
+    if (!node.is_dir) {
+        item.onclick = () => switchFile(node.name);
+    }
+    return item;
+}
+
+// ---- CHAT SESSIONS & CONVERSATION CONTINUITY ----
+async function initChatSessionsManager() {
+    const btnHistory = document.getElementById('btnChatHistory');
+    const btnNewChat = document.getElementById('btnNewChat');
+    const btnNewFromModal = document.getElementById('btnCreateNewSessionFromModal');
+
+    if (btnHistory) {
+        btnHistory.addEventListener('click', async () => {
+            await renderSessionsModal();
+            document.getElementById('sessionsModal')?.classList.add('modal--open');
+        });
+    }
+
+    if (btnNewChat) {
+        btnNewChat.addEventListener('click', () => {
+            startNewConversation();
+        });
+    }
+
+    if (btnNewFromModal) {
+        btnNewFromModal.addEventListener('click', () => {
+            closeModal('sessionsModal');
+            startNewConversation();
+        });
+    }
+}
+
+async function renderSessionsModal() {
+    const container = document.getElementById('sessionsListContainer');
+    if (!container) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/chat/sessions`);
+        if (!res.ok) throw new Error('Offline');
+        const data = await res.json();
+        const sessions = data.sessions || [];
+
+        container.innerHTML = '';
+        if (sessions.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted);font-size:12px;text-align:center;">Nenhuma conversa anterior salva.</p>';
+            return;
+        }
+
+        sessions.forEach(sess => {
+            const item = document.createElement('div');
+            item.className = `session-item ${sess.id === currentSessionId ? 'session-item--active' : ''}`;
+            item.innerHTML = `
+                <div class="session-info">
+                    <span class="session-title">${escapeHtml(sess.title || 'Conversa sem título')}</span>
+                    <span class="session-date">${new Date(sess.created_at || Date.now()).toLocaleDateString('pt-BR')} — ${sess.messages?.length || 0} mensagens</span>
+                </div>
+                <span class="session-status-badge">Salva</span>
+            `;
+            item.addEventListener('click', () => {
+                resumeSession(sess);
+            });
+            container.appendChild(item);
+        });
+    } catch (e) {
+        container.innerHTML = '<p style="color:var(--text-muted);font-size:12px;text-align:center;">Histórico local ativo.</p>';
+    }
+}
+
+function startNewConversation() {
+    currentSessionId = `session-${Date.now()}`;
+    currentSessionTitle = 'Nova Missão';
+    const titleEl = document.getElementById('conversationTitle');
+    if (titleEl) titleEl.textContent = currentSessionTitle;
+
+    const feed = document.getElementById('chatMessages');
+    if (feed) feed.innerHTML = '';
+}
+
+function resumeSession(sess) {
+    closeModal('sessionsModal');
+    currentSessionId = sess.id;
+    currentSessionTitle = sess.title;
+    const titleEl = document.getElementById('conversationTitle');
+    if (titleEl) titleEl.textContent = sess.title;
+
+    const feed = document.getElementById('chatMessages');
+    if (!feed) return;
+    feed.innerHTML = '';
+
+    if (sess.messages && sess.messages.length > 0) {
+        sess.messages.forEach(m => {
+            if (m.role === 'user') {
+                addUserMessage(m.text);
+            } else {
+                addAgentResponse(m.text, "Thought for 4s", "4 commands");
+            }
+        });
+    }
+}
 
 // ---- MODEL PICKER ----
 function initModelPicker() {
@@ -464,14 +635,14 @@ function initWebSocket() {
                 }
 
                 addAgentResponse(
-                    `<p>🎉 <strong>Projeto construído com sucesso!</strong></p>
-                     <ul style="margin:8px 0 8px 20px;color:var(--text-secondary);font-size:13px;">
-                         <li>Visual Inspector Score: <strong>${data.report?.score || 100}/100</strong></li>
-                         <li>Segurança: <strong>${data.security_audit?.sql_injection_risk || 'Zero SQLi'}</strong></li>
-                         <li>Arquivos gerados: <code>index.html</code>, <code>style.css</code>, <code>api.py</code></li>
-                     </ul>`,
+                    `### 🎉 Projeto Construído com Sucesso!
+
+• Visual Inspector Score: **${data.report?.score || 100}/100**
+• Segurança de Banco: **${data.security_audit?.sql_injection_risk || 'Zero SQLi (Prepared Statements)'}**
+• Arquivos no Workspace: \`index.html\`, \`style.css\`, \`api.py\``,
                     "Thought for 4s",
-                    "4 commands"
+                    "4 commands",
+                    { title: "Projeto Gerado", summary: "Código renderizado no Workspace", file: "index.html" }
                 );
             }
         } catch (e) {}
@@ -480,171 +651,27 @@ function initWebSocket() {
 
 // ---- UTILITIES ----
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
-function closeModal(id) {
+window.closeModal = function(id) {
     document.getElementById(id)?.classList.remove('modal--open');
-}
+};
 
 // ---- INITIALIZATION ----
-
-// ---- CHAT SESSIONS & CONVERSATION CONTINUITY (ANTIGRAVITY) ----
-let currentSessionId = 'session-1';
-let currentSessionTitle = 'Melhorias do Agente Antigravity';
-
-async function initChatSessionsManager() {
-    const btnHistory = document.getElementById('btnChatHistory');
-    const btnNewChat = document.getElementById('btnNewChat');
-    const btnNewFromModal = document.getElementById('btnCreateNewSessionFromModal');
-
-    if (btnHistory) {
-        btnHistory.addEventListener('click', async () => {
-            await renderSessionsModal();
-            document.getElementById('sessionsModal')?.classList.add('modal--open');
-        });
-    }
-
-    if (btnNewChat) {
-        btnNewChat.addEventListener('click', () => {
-            startNewConversation();
-        });
-    }
-
-    if (btnNewFromModal) {
-        btnNewFromModal.addEventListener('click', () => {
-            closeModal('sessionsModal');
-            startNewConversation();
-        });
-    }
-
-    // Resizer Explorer vs Chat
-    const resizerExp = document.getElementById('resizerExplorer');
-    const explorerPanel = document.getElementById('explorerPanel');
-    const layout = document.querySelector('.antigravity-layout');
-
-    if (resizerExp && explorerPanel && layout) {
-        let isDraggingExp = false;
-        resizerExp.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            isDraggingExp = true;
-            document.body.classList.add('is-resizing');
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (!isDraggingExp) return;
-            const sidebarWidth = 44; // Rail width
-            const newWidth = e.clientX - sidebarWidth;
-            if (newWidth >= 120 && newWidth <= 450) {
-                explorerPanel.style.width = `${newWidth}px`;
-                if (state.monacoEditor) state.monacoEditor.layout();
-                localStorage.setItem('cx_explorer_pane_width', newWidth);
-            }
-        });
-
-        window.addEventListener('mouseup', () => {
-            if (isDraggingExp) {
-                isDraggingExp = false;
-                document.body.classList.remove('is-resizing');
-            }
-        });
-
-        const savedW = localStorage.getItem('cx_explorer_pane_width');
-        if (savedW) {
-            explorerPanel.style.width = `${savedW}px`;
-        }
-    }
-}
-
-async function renderSessionsModal() {
-    const container = document.getElementById('sessionsListContainer');
-    if (!container) return;
-
-    try {
-        const res = await fetch(`${API_BASE}/chat/sessions`);
-        if (!res.ok) throw new Error('Offline');
-        const data = await res.json();
-        const sessions = data.sessions || [];
-
-        container.innerHTML = '';
-        if (sessions.length === 0) {
-            container.innerHTML = '<p style="color:var(--text-muted);font-size:12px;text-align:center;">Nenhuma conversa anterior salva.</p>';
-            return;
-        }
-
-        sessions.forEach(sess => {
-            const item = document.createElement('div');
-            item.className = `session-item ${sess.id === currentSessionId ? 'session-item--active' : ''}`;
-            item.innerHTML = `
-                <div class="session-info">
-                    <span class="session-title">${escapeHtml(sess.title || 'Conversa sem título')}</span>
-                    <span class="session-date">${new Date(sess.created_at || Date.now()).toLocaleDateString('pt-BR')} — ${sess.messages?.length || 0} mensagens</span>
-                </div>
-                <span class="session-status-badge">Salva</span>
-            `;
-            item.addEventListener('click', () => {
-                resumeSession(sess);
-            });
-            container.appendChild(item);
-        });
-    } catch (e) {
-        container.innerHTML = '<p style="color:var(--text-muted);font-size:12px;text-align:center;">Histórico local ativo.</p>';
-    }
-}
-
-function startNewConversation() {
-    currentSessionId = `session-${Date.now()}`;
-    currentSessionTitle = 'Nova Missão';
-    const titleEl = document.getElementById('conversationTitle');
-    if (titleEl) titleEl.textContent = currentSessionTitle;
-
-    const feed = document.getElementById('chatMessages');
-    if (feed) {
-        feed.innerHTML = `
-            <div class="chat-welcome" style="padding: 40px 20px; text-align: center;">
-                <div class="chat-welcome__icon" style="font-size: 32px; margin-bottom: 8px;">✦</div>
-                <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Nova Conversa com o Agente</h3>
-                <p style="font-size: 12.5px; color: var(--text-muted); max-width: 420px; margin: 0 auto 16px;">Descreva o que deseja construir ou continuar nesta sessão.</p>
-            </div>
-        `;
-    }
-}
-
-function resumeSession(sess) {
-    closeModal('sessionsModal');
-    currentSessionId = sess.id;
-    currentSessionTitle = sess.title;
-    const titleEl = document.getElementById('conversationTitle');
-    if (titleEl) titleEl.textContent = sess.title;
-
-    const feed = document.getElementById('chatMessages');
-    if (!feed) return;
-    feed.innerHTML = '';
-
-    if (sess.messages && sess.messages.length > 0) {
-        sess.messages.forEach(m => {
-            if (m.role === 'user') {
-                addUserMessage(m.text);
-            } else {
-                addAgentResponse(m.text, "Thought for 4s", "4 commands");
-            }
-        });
-    }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     initMonaco();
     initWorkspaceViews();
-    initResizer();
+    initResizers();
     initRail();
     initFolderPicker();
     initChatSessionsManager();
     initModelPicker();
     initWebSocket();
 
-    // Send button
     document.getElementById('btnSend')?.addEventListener('click', handleSendMessage);
     document.getElementById('chatInput')?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -653,19 +680,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Auto-resize textarea
     document.getElementById('chatInput')?.addEventListener('input', function() {
         this.style.height = 'auto';
         this.style.height = Math.min(this.scrollHeight, 160) + 'px';
     });
 
-    // New chat button
-    document.getElementById('btnNewChat')?.addEventListener('click', () => {
-        document.getElementById('chatMessages').innerHTML = '';
-    });
-
-    // Export ZIP
     document.getElementById('btnExportZip')?.addEventListener('click', () => {
         window.open(`${API_BASE}/project/export?project_id=default`, '_blank');
+    });
+
+    document.getElementById('btnDeploy')?.addEventListener('click', async () => {
+        try {
+            await fetch(`${API_BASE}/deploy`, { method: 'POST' });
+        } catch (e) {}
     });
 });

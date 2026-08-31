@@ -444,12 +444,157 @@ function closeModal(id) {
 }
 
 // ---- INITIALIZATION ----
+
+// ---- CHAT SESSIONS & CONVERSATION CONTINUITY (ANTIGRAVITY) ----
+let currentSessionId = 'session-1';
+let currentSessionTitle = 'Melhorias do Agente Antigravity';
+
+async function initChatSessionsManager() {
+    const btnHistory = document.getElementById('btnChatHistory');
+    const btnNewChat = document.getElementById('btnNewChat');
+    const btnNewFromModal = document.getElementById('btnCreateNewSessionFromModal');
+
+    if (btnHistory) {
+        btnHistory.addEventListener('click', async () => {
+            await renderSessionsModal();
+            document.getElementById('sessionsModal')?.classList.add('modal--open');
+        });
+    }
+
+    if (btnNewChat) {
+        btnNewChat.addEventListener('click', () => {
+            startNewConversation();
+        });
+    }
+
+    if (btnNewFromModal) {
+        btnNewFromModal.addEventListener('click', () => {
+            closeModal('sessionsModal');
+            startNewConversation();
+        });
+    }
+
+    // Resizer Explorer vs Chat
+    const resizerExp = document.getElementById('resizerExplorer');
+    const explorerPanel = document.getElementById('explorerPanel');
+    const layout = document.querySelector('.antigravity-layout');
+
+    if (resizerExp && explorerPanel && layout) {
+        let isDraggingExp = false;
+        resizerExp.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isDraggingExp = true;
+            document.body.classList.add('is-resizing');
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDraggingExp) return;
+            const sidebarWidth = 44; // Rail width
+            const newWidth = e.clientX - sidebarWidth;
+            if (newWidth >= 120 && newWidth <= 450) {
+                explorerPanel.style.width = `${newWidth}px`;
+                if (state.monacoEditor) state.monacoEditor.layout();
+                localStorage.setItem('cx_explorer_pane_width', newWidth);
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDraggingExp) {
+                isDraggingExp = false;
+                document.body.classList.remove('is-resizing');
+            }
+        });
+
+        const savedW = localStorage.getItem('cx_explorer_pane_width');
+        if (savedW) {
+            explorerPanel.style.width = `${savedW}px`;
+        }
+    }
+}
+
+async function renderSessionsModal() {
+    const container = document.getElementById('sessionsListContainer');
+    if (!container) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/chat/sessions`);
+        if (!res.ok) throw new Error('Offline');
+        const data = await res.json();
+        const sessions = data.sessions || [];
+
+        container.innerHTML = '';
+        if (sessions.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted);font-size:12px;text-align:center;">Nenhuma conversa anterior salva.</p>';
+            return;
+        }
+
+        sessions.forEach(sess => {
+            const item = document.createElement('div');
+            item.className = `session-item ${sess.id === currentSessionId ? 'session-item--active' : ''}`;
+            item.innerHTML = `
+                <div class="session-info">
+                    <span class="session-title">${escapeHtml(sess.title || 'Conversa sem título')}</span>
+                    <span class="session-date">${new Date(sess.created_at || Date.now()).toLocaleDateString('pt-BR')} — ${sess.messages?.length || 0} mensagens</span>
+                </div>
+                <span class="session-status-badge">Salva</span>
+            `;
+            item.addEventListener('click', () => {
+                resumeSession(sess);
+            });
+            container.appendChild(item);
+        });
+    } catch (e) {
+        container.innerHTML = '<p style="color:var(--text-muted);font-size:12px;text-align:center;">Histórico local ativo.</p>';
+    }
+}
+
+function startNewConversation() {
+    currentSessionId = `session-${Date.now()}`;
+    currentSessionTitle = 'Nova Missão';
+    const titleEl = document.getElementById('conversationTitle');
+    if (titleEl) titleEl.textContent = currentSessionTitle;
+
+    const feed = document.getElementById('chatMessages');
+    if (feed) {
+        feed.innerHTML = `
+            <div class="chat-welcome" style="padding: 40px 20px; text-align: center;">
+                <div class="chat-welcome__icon" style="font-size: 32px; margin-bottom: 8px;">✦</div>
+                <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Nova Conversa com o Agente</h3>
+                <p style="font-size: 12.5px; color: var(--text-muted); max-width: 420px; margin: 0 auto 16px;">Descreva o que deseja construir ou continuar nesta sessão.</p>
+            </div>
+        `;
+    }
+}
+
+function resumeSession(sess) {
+    closeModal('sessionsModal');
+    currentSessionId = sess.id;
+    currentSessionTitle = sess.title;
+    const titleEl = document.getElementById('conversationTitle');
+    if (titleEl) titleEl.textContent = sess.title;
+
+    const feed = document.getElementById('chatMessages');
+    if (!feed) return;
+    feed.innerHTML = '';
+
+    if (sess.messages && sess.messages.length > 0) {
+        sess.messages.forEach(m => {
+            if (m.role === 'user') {
+                addUserMessage(m.text);
+            } else {
+                addAgentResponse(m.text, "Thought for 4s", "4 commands");
+            }
+        });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initMonaco();
     initWorkspaceViews();
     initResizer();
     initRail();
     initFolderPicker();
+    initChatSessionsManager();
     initModelPicker();
     initWebSocket();
 

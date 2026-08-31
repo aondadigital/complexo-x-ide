@@ -523,6 +523,52 @@ async def export_project_zip(project_id: str = "default"):
         headers={"Content-Disposition": f"attachment; filename=complexo-x-{project_id}.zip"}
     )
 
+
+# --- Endpoints de Sessões e Histórico de Conversas do Agente ---
+SESSIONS_FILE = BASE_DIR / "workspace" / "chat_sessions.json"
+
+def load_sessions() -> List[Dict[str, Any]]:
+    if SESSIONS_FILE.exists():
+        try:
+            return json.loads(SESSIONS_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return [
+        {
+            "id": "session-1",
+            "title": "Melhorias do Agente Antigravity",
+            "created_at": datetime.now().isoformat(),
+            "messages": [
+                {"role": "user", "text": "Melhorar arquitetura e layout para padrão Antigravity"},
+                {"role": "agent", "text": "Layout 3 colunas e telemetria integrados."}
+            ]
+        }
+    ]
+
+def save_sessions(sessions: List[Dict[str, Any]]):
+    SESSIONS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    SESSIONS_FILE.write_text(json.dumps(sessions, indent=2, ensure_ascii=False), encoding="utf-8")
+
+@app.get("/api/chat/sessions")
+async def get_chat_sessions():
+    return {"sessions": load_sessions()}
+
+class SaveSessionRequest(BaseModel):
+    id: str
+    title: str
+    messages: List[Dict[str, Any]]
+
+@app.post("/api/chat/sessions")
+async def save_chat_session(req: SaveSessionRequest):
+    sessions = load_sessions()
+    idx = next((i for i, s in enumerate(sessions) if s["id"] == req.id), None)
+    if idx is not None:
+        sessions[idx] = req.model_dump()
+    else:
+        sessions.insert(0, req.model_dump())
+    save_sessions(sessions)
+    return {"ok": True, "session": req.model_dump()}
+
 @app.post("/api/mission")
 async def execute_mission_pipeline(mission: MissionRequest):
     asyncio.create_task(run_parallel_pipeline(mission))

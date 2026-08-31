@@ -82,7 +82,7 @@
         </aside>
 
         <!-- OPTIONAL COLLAPSIBLE EXPLORER SIDEBAR -->
-        <aside class="antigravity-explorer antigravity-explorer--hidden" id="explorerPanel">
+        <aside class="antigravity-explorer" id="explorerPanel">
             <div class="explorer-header">
                 <span class="explorer-badge">EXPLORER</span>
                 <span class="explorer-title" id="explorerRootName">PROJETOS</span>
@@ -96,6 +96,9 @@
                 <div class="tree-loading">Carregando pastas...</div>
             </div>
         </aside>
+
+        <!-- RESIZER BETWEEN EXPLORER AND CHAT -->
+        <div class="antigravity-resizer" id="resizerExplorer"></div>
 
         <!-- COLUMN 1: LEFT AGENT CHAT & CANVAS (ANTIGRAVITY OFFICIAL) -->
         <section class="antigravity-chat-pane" id="chatPane">
@@ -200,7 +203,26 @@
             <div class="workspace-views">
                 <!-- VIEW 1: LIVE PREVIEW / ARTIFACT CANVAS -->
                 <div class="workspace-view workspace-view--preview" id="viewPreview">
-                    <iframe id="previewFrame" class="preview-iframe" srcdoc="<html><body style='background:#0f1117;color:#8b8fa3;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif'><p style='text-align:center'>✦ Complexo-X IDE Canvas Ativo</p></body></html>"></iframe>
+                    <iframe id="previewFrame" class="preview-iframe" srcdoc="<html><body style='background:#0f1117;color:#8b8fa3;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif'><p style='text-align:center'>✦ Complexo-X IDE Canvas Ativo</p>    <!-- MODAL: Histórico de Conversas / Sessões (Continuar de onde parou) -->
+    <div class="modal" id="sessionsModal">
+        <div class="modal__backdrop" onclick="closeModal('sessionsModal')"></div>
+        <div class="modal__content" style="max-width: 520px;">
+            <div class="modal__header">
+                <h2>⏱ Histórico de Conversas</h2>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <button class="btn btn--deploy" id="btnCreateNewSessionFromModal" style="padding:4px 10px;font-size:11px;">+ Nova Conversa</button>
+                    <button class="modal__close" onclick="closeModal('sessionsModal')">✕</button>
+                </div>
+            </div>
+            <div style="padding: 16px;">
+                <p style="color:var(--text-secondary);font-size:12px;margin-bottom:12px;">Selecione uma conversa anterior para continuar o trabalho:</p>
+                <div class="sessions-list" id="sessionsListContainer">
+                    <!-- Sessões renderizadas dinamicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+</body></html>"></iframe>
                 </div>
 
                 <!-- VIEW 2: MONACO CODE EDITOR -->
@@ -279,5 +301,24 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
     <script src="app.js"></script>
+    <!-- MODAL: Histórico de Conversas / Sessões (Continuar de onde parou) -->
+    <div class="modal" id="sessionsModal">
+        <div class="modal__backdrop" onclick="closeModal('sessionsModal')"></div>
+        <div class="modal__content" style="max-width: 520px;">
+            <div class="modal__header">
+                <h2>⏱ Histórico de Conversas</h2>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <button class="btn btn--deploy" id="btnCreateNewSessionFromModal" style="padding:4px 10px;font-size:11px;">+ Nova Conversa</button>
+                    <button class="modal__close" onclick="closeModal('sessionsModal')">✕</button>
+                </div>
+            </div>
+            <div style="padding: 16px;">
+                <p style="color:var(--text-secondary);font-size:12px;margin-bottom:12px;">Selecione uma conversa anterior para continuar o trabalho:</p>
+                <div class="sessions-list" id="sessionsListContainer">
+                    <!-- Sessões renderizadas dinamicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

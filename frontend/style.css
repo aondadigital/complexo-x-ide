@@ -785,3 +785,68 @@ body.antigravity-theme {
     cursor: col-resize;
 }
 body.is-resizing #dragOverlay { display: block; }
+
+/* ============================================
+   SESSIONS & CHAT HISTORY MODAL STYLES
+   ============================================ */
+.sessions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 380px;
+    overflow-y: auto;
+}
+
+.session-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.session-item:hover {
+    border-color: var(--accent-purple);
+    background: var(--bg-hover);
+    transform: translateX(2px);
+}
+
+.session-item--active {
+    border-color: var(--accent-purple);
+    background: rgba(124, 58, 237, 0.15);
+}
+
+.session-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+}
+
+.session-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.session-date {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.session-status-badge {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent-green);
+    background: rgba(16, 185, 129, 0.15);
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}

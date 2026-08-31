@@ -1,5 +1,5 @@
 /* ============================================
-   COMPLEXO-X IDE — Core Engine (v3.7)
+   COMPLEXO-X IDE — Core Engine (v3.8)
    complexo-x.com.br/ide
    ============================================ */
 
@@ -410,7 +410,6 @@ function renderTreeNode(node) {
             const isClosed = childrenContainer.style.display === 'none';
 
             if (isClosed && (!isLoaded || childrenContainer.children.length === 0)) {
-                childrenContainer.innerHTML = '<div style="padding:2px 10px;font-size:11px;color:var(--text-dim);">Carregando...</div>';
                 childrenContainer.style.display = 'block';
                 if (chevron) chevron.style.transform = 'rotate(90deg)';
 
@@ -521,15 +520,9 @@ window.closeWorkspaceTab = function(e, fileName) {
 function initExplorerActions() {
     document.getElementById('btnNewFile')?.addEventListener('click', async () => {
         const fileName = `arquivo_${Date.now().toString().slice(-4)}.js`;
-        try {
-            await fetch(`${API_BASE}/fs/file`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ path: fileName, content: '# Novo arquivo\n' })
-            });
-            await loadFileTree();
-            openFileFromPath(fileName, fileName);
-        } catch (e) {}
+        state.files[fileName] = { lang: 'javascript', content: '// Arquivo criado\n' };
+        switchFile(fileName);
+        openFileFromPath(fileName, fileName);
     });
 
     document.getElementById('btnOpenFolderAction')?.addEventListener('click', () => {
@@ -545,40 +538,144 @@ function initExplorerActions() {
     });
 }
 
-async function openFolderDialog() {
-    if ('showDirectoryPicker' in window && window.isSecureContext) {
-        try {
-            const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-            if (dirHandle && dirHandle.name) {
-                state.currentWorkspaceName = dirHandle.name;
-                await loadLocalDirectoryHandle(dirHandle);
-                return;
-            }
-        } catch (err) {
-            if (err.name === 'AbortError') return;
-        }
+// ---- SELETOR NATIVO DE PASTAS DO WINDOWS (webkitdirectory) ----
+window.handleNativeFolderSelect = function(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const container = document.getElementById('fileTreeContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const rootName = files[0].webkitRelativePath.split('/')[0] || 'Pasta Selecionada';
+    state.currentWorkspaceName = rootName;
+
+    // Organiza a lista de arquivos selecionados nativamente
+    const fileMap = {};
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const parts = file.webkitRelativePath.split('/');
+        parts.shift(); // remove root folder name
+        if (parts.length === 0) continue;
+
+        const fileName = parts.pop();
+        let current = fileMap;
+        parts.forEach(dir => {
+            if (!current[dir]) current[dir] = { _isDir: true, _children: {} };
+            current = current[dir]._children;
+        });
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            state.files[fileName] = { lang: getFileLanguage(fileName), content: e.target.result };
+        };
+        reader.readAsText(file);
+
+        current[fileName] = { _isDir: false, _name: fileName, _file: file };
     }
-    const modal = document.getElementById('workspaceModal');
-    if (modal) modal.classList.add('modal--open');
+
+    const fragment = document.createDocumentFragment();
+    renderNativeMap(fileMap, fragment);
+    container.appendChild(fragment);
+};
+
+function getFileLanguage(name) {
+    if (name.endsWith('.html')) return 'html';
+    if (name.endsWith('.css')) return 'css';
+    if (name.endsWith('.js')) return 'javascript';
+    if (name.endsWith('.py')) return 'python';
+    if (name.endsWith('.json')) return 'json';
+    return 'plaintext';
+}
+
+function renderNativeMap(mapObj, parentEl) {
+    Object.keys(mapObj).sort().forEach(key => {
+        const itemObj = mapObj[key];
+        const wrapper = document.createElement('div');
+        wrapper.className = 'tree-node';
+
+        const item = document.createElement('div');
+        item.className = 'tree-item';
+
+        if (itemObj._isDir) {
+            item.innerHTML = `
+                <span class="tree-item__chevron" style="font-size:9px;color:var(--text-dim);margin-right:2px;display:inline-block;transition:transform 0.15s;">▶</span>
+                <span style="font-size:13px;margin-right:4px;">📂</span>
+                <span class="tree-item__name" style="color:var(--text-main);font-weight:500;">${escapeHtml(key)}</span>
+            `;
+            const childrenContainer = document.createElement('div');
+            childrenContainer.className = 'tree-children';
+            childrenContainer.style.cssText = 'margin-left:14px;border-left:1px solid var(--border-subtle);padding-left:2px;display:none;';
+
+            renderNativeMap(itemObj._children, childrenContainer);
+
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const chevron = item.querySelector('.tree-item__chevron');
+                const isClosed = childrenContainer.style.display === 'none';
+                childrenContainer.style.display = isClosed ? 'block' : 'none';
+                if (chevron) chevron.style.transform = isClosed ? 'rotate(90deg)' : 'rotate(0deg)';
+            });
+
+            wrapper.appendChild(item);
+            wrapper.appendChild(childrenContainer);
+        } else {
+            const fileName = itemObj._name || key;
+            item.innerHTML = `
+                <span style="display:inline-block;width:11px;"></span>
+                <span style="font-size:13px;margin-right:4px;">${getFileIcon(fileName)}</span>
+                <span class="tree-item__name">${escapeHtml(fileName)}</span>
+            `;
+
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('tree-item--active'));
+                item.classList.add('tree-item--active');
+                if (itemObj._file) {
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        state.files[fileName] = { lang: getFileLanguage(fileName), content: ev.target.result };
+                        
+                        const viewPreview = document.getElementById('viewPreview');
+                        const viewEditor = document.getElementById('viewEditor');
+                        if (viewPreview) viewPreview.style.display = 'none';
+                        if (viewEditor) viewEditor.style.display = 'block';
+                        state.activeView = 'editor';
+                        switchFile(fileName);
+                    };
+                    reader.readAsText(itemObj._file);
+                } else {
+                    switchFile(fileName);
+                }
+            });
+
+            wrapper.appendChild(item);
+        }
+        parentEl.appendChild(wrapper);
+    });
+}
+
+function openFolderDialog() {
+    const input = document.getElementById('folderSelectorInput');
+    if (input) {
+        input.click();
+    } else {
+        const modal = document.getElementById('workspaceModal');
+        if (modal) modal.classList.add('modal--open');
+    }
 }
 
 function closeFolder() {
     state.currentWorkspaceName = 'SEM PASTA';
     const container = document.getElementById('fileTreeContainer');
     if (container) {
-        container.innerHTML = `
-            <div style="padding:36px 14px;text-align:center;">
-                <div style="font-size:28px;margin-bottom:8px;opacity:0.6;">📂</div>
-                <p style="font-size:11.5px;color:var(--text-dim);margin-bottom:14px;">Nenhuma pasta aberta</p>
-                <button class="btn btn--deploy" style="font-size:11.5px;padding:5px 12px;margin:0 auto;" onclick="openFolderDialog()">Abrir Pasta</button>
-            </div>
-        `;
+        renderDefaultFallbackTree(container);
     }
 }
 
 window.chooseWorkspace = async function(path) {
     closeModal('workspaceModal');
-    const name = path.split('/').pop().split(/[/\\]/).pop();
+    const name = path.split(/[/\\]/).pop();
     state.currentWorkspaceName = name;
     try {
         await fetch(`${API_BASE}/fs/workspace/switch`, {
@@ -889,20 +986,14 @@ window.addEventListener('click', (e) => {
 });
 
 window.triggerNewFile = function() {
-    const fileName = prompt('Nome do novo arquivo (ex: app.py, checkout.html):');
-    if (!fileName) return;
-    state.files[fileName] = { lang: 'plaintext', content: '' };
+    const fileName = `arquivo_${Date.now().toString().slice(-4)}.js`;
+    state.files[fileName] = { lang: 'javascript', content: '// Arquivo criado\n' };
     switchFile(fileName);
-    loadFileTree();
+    openFileFromPath(fileName, fileName);
 };
 
 window.triggerNewFolder = function() {
-    const folderName = `pasta_${Date.now().toString().slice(-4)}`;
-    fetch(`${API_BASE}/fs/folder`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: folderName })
-    }).then(() => loadFileTree());
+    openFolderDialog();
 };
 
 window.triggerSaveFile = async function() {

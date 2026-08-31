@@ -15,43 +15,95 @@
     <header class="antigravity-topbar">
         <div class="topbar-left-menu">
             <div class="app-logo">✦</div>
-                        <nav class="menu-items">
+                                                <nav class="menu-items">
+                <!-- ARQUIVO -->
                 <div class="dropdown">
                     <button class="menu-btn" onclick="toggleMenu('menuArquivo')">Arquivo</button>
                     <div class="dropdown-content" id="menuArquivo">
-                        <a href="javascript:void(0)" onclick="triggerNewFile()">Novo Arquivo <span class="shortcut">Ctrl+N</span></a>
-                        <a href="javascript:void(0)" onclick="triggerNewFolder()">Nova Pasta</a>
-                        <a href="javascript:void(0)" onclick="triggerSaveFile()">Salvar Arquivo <span class="shortcut">Ctrl+S</span></a>
+                        <a href="javascript:void(0)" onclick="triggerNewFile()">Novo Arquivo de Texto <span class="shortcut">Ctrl+N</span></a>
+                        <a href="javascript:void(0)" onclick="triggerNewFile()">Novo Arquivo... <span class="shortcut">Ctrl+Alt+Win+N</span></a>
+                        <a href="javascript:void(0)" onclick="window.open(window.location.href, '_blank')">Nova Janela <span class="shortcut">Ctrl+Shift+N</span></a>
                         <hr>
-                        <a href="javascript:void(0)" onclick="triggerOpenFolder()">Abrir Pasta...</a>
-                        <a href="javascript:void(0)" onclick="triggerExportZip()">Exportar ZIP</a>
+                        <a href="javascript:void(0)" onclick="triggerOpenFolder()">Abrir o Arquivo... <span class="shortcut">Ctrl+O</span></a>
+                        <a href="javascript:void(0)" onclick="triggerOpenFolder()">Abrir Pasta... <span class="shortcut">Ctrl+K Ctrl+O</span></a>
+                        <a href="javascript:void(0)" onclick="triggerOpenFolder()">Abrir Recente <span class="sub-arrow">❯</span></a>
+                        <hr>
+                        <a href="javascript:void(0)" onclick="triggerOpenFolder()">Adicionar Pasta ao Workspace...</a>
+                        <a href="javascript:void(0)" onclick="triggerExportZip()">Salvar Workspace como...</a>
+                        <hr>
+                        <a href="javascript:void(0)" onclick="triggerSaveFile()">Salvar <span class="shortcut">Ctrl+S</span></a>
+                        <a href="javascript:void(0)" onclick="triggerSaveFile()">Salvar como... <span class="shortcut">Ctrl+Shift+S</span></a>
+                        <a href="javascript:void(0)" onclick="triggerSaveFile()">Salvar Tudo <span class="shortcut">Ctrl+K S</span></a>
+                        <hr>
+                        <a href="javascript:void(0)" onclick="toggleAutoSave()"><span style="color:#10b981;">✓</span> Salvamento Automático</a>
+                        <a href="javascript:void(0)" onclick="openTemplatesModal()">Preferências <span class="sub-arrow">❯</span></a>
+                        <hr>
+                        <a href="javascript:void(0)" onclick="closeFolder()">Fechar o Editor <span class="shortcut">Ctrl+F4</span></a>
+                        <a href="javascript:void(0)" onclick="closeFolder()">Fechar a Janela <span class="shortcut">Alt+F4</span></a>
                     </div>
                 </div>
+
+                <!-- EDITAR -->
                 <div class="dropdown">
                     <button class="menu-btn" onclick="toggleMenu('menuEditar')">Editar</button>
                     <div class="dropdown-content" id="menuEditar">
                         <a href="javascript:void(0)" onclick="editorAction('undo')">Desfazer <span class="shortcut">Ctrl+Z</span></a>
                         <a href="javascript:void(0)" onclick="editorAction('redo')">Refazer <span class="shortcut">Ctrl+Y</span></a>
                         <hr>
+                        <a href="javascript:void(0)" onclick="editorAction('cut')">Recortar <span class="shortcut">Ctrl+X</span></a>
+                        <a href="javascript:void(0)" onclick="editorAction('copy')">Copiar <span class="shortcut">Ctrl+C</span></a>
+                        <a href="javascript:void(0)" onclick="editorAction('paste')">Colar <span class="shortcut">Ctrl+V</span></a>
+                        <hr>
                         <a href="javascript:void(0)" onclick="editorAction('find')">Localizar <span class="shortcut">Ctrl+F</span></a>
+                        <a href="javascript:void(0)" onclick="editorAction('find')">Substituir <span class="shortcut">Ctrl+H</span></a>
                     </div>
                 </div>
+
+                <!-- SELEÇÃO -->
+                <div class="dropdown">
+                    <button class="menu-btn" onclick="toggleMenu('menuSelecao')">Seleção</button>
+                    <div class="dropdown-content" id="menuSelecao">
+                        <a href="javascript:void(0)" onclick="editorAction('selectAll')">Selecionar Tudo <span class="shortcut">Ctrl+A</span></a>
+                        <a href="javascript:void(0)" onclick="editorAction('expandSelection')">Expandir Seleção <span class="shortcut">Shift+Alt+Right</span></a>
+                    </div>
+                </div>
+
+                <!-- VER -->
                 <div class="dropdown">
                     <button class="menu-btn" onclick="toggleMenu('menuVer')">Ver</button>
                     <div class="dropdown-content" id="menuVer">
-                        <a href="javascript:void(0)" onclick="triggerTogglePreview()">Alternar Preview / Código <span class="shortcut">◫</span></a>
-                        <a href="javascript:void(0)" onclick="triggerToggleExplorer()">Alternar Explorer <span class="shortcut">Ctrl+B</span></a>
+                        <a href="javascript:void(0)" onclick="triggerToggleExplorer()">Explorador <span class="shortcut">Ctrl+Shift+E</span></a>
                         <a href="javascript:void(0)" onclick="triggerToggleTerminal()">Terminal Integrado <span class="shortcut">Ctrl+~</span></a>
+                        <a href="javascript:void(0)" onclick="triggerTogglePreview()">Alternar Preview / Código <span class="shortcut">◫</span></a>
                     </div>
                 </div>
+
+                <!-- ACESSAR -->
+                <div class="dropdown">
+                    <button class="menu-btn" onclick="toggleMenu('menuAcessar')">Acessar</button>
+                    <div class="dropdown-content" id="menuAcessar">
+                        <a href="javascript:void(0)" onclick="editorAction('gotoLine')">Ir para a Linha/Coluna... <span class="shortcut">Ctrl+G</span></a>
+                        <a href="javascript:void(0)" onclick="triggerOpenFolder()">Ir para o Arquivo... <span class="shortcut">Ctrl+P</span></a>
+                    </div>
+                </div>
+
+                <!-- EXECUTAR -->
+                <div class="dropdown">
+                    <button class="menu-btn" onclick="toggleMenu('menuExecutar')">Executar</button>
+                    <div class="dropdown-content" id="menuExecutar">
+                        <a href="javascript:void(0)" onclick="triggerTogglePreview()">Iniciar Depuração <span class="shortcut">F5</span></a>
+                        <a href="javascript:void(0)" onclick="triggerTogglePreview()">Executar sem Depurar <span class="shortcut">Ctrl+F5</span></a>
+                    </div>
+                </div>
+
+                <!-- TERMINAL -->
                 <div class="dropdown">
                     <button class="menu-btn" onclick="toggleMenu('menuTerminal')">Terminal</button>
                     <div class="dropdown-content" id="menuTerminal">
-                        <a href="javascript:void(0)" onclick="triggerToggleTerminal()">Novo Terminal</a>
+                        <a href="javascript:void(0)" onclick="triggerToggleTerminal()">Novo Terminal <span class="shortcut">Ctrl+Shift+`</span></a>
                         <a href="javascript:void(0)" onclick="clearTerminal()">Limpar Saída</a>
                     </div>
                 </div>
-                <button class="menu-btn" onclick="openTemplatesModal()">Modelos</button>
             </nav>
         </div>
 
@@ -253,6 +305,8 @@
             <input type="text" id="terminalInput" class="terminal-input" placeholder="Digite um comando (ex: git status, ls, python --version)...">
         </div>
     </div>
+    <!-- HIDDEN NATIVE WINDOWS FOLDER SELECTOR INPUT -->
+    <input type="file" id="folderSelectorInput" webkitdirectory directory multiple style="display:none;" onchange="handleNativeFolderSelect(event)">
 </body></html>"></iframe>
                 </div>
 
@@ -377,5 +431,7 @@
             <input type="text" id="terminalInput" class="terminal-input" placeholder="Digite um comando (ex: git status, ls, python --version)...">
         </div>
     </div>
+    <!-- HIDDEN NATIVE WINDOWS FOLDER SELECTOR INPUT -->
+    <input type="file" id="folderSelectorInput" webkitdirectory directory multiple style="display:none;" onchange="handleNativeFolderSelect(event)">
 </body>
 </html>

@@ -25,6 +25,7 @@ const state = {
         designer:    { name: 'Designer',    emoji: '🎨', status: 'idle', progress: 0, task: 'Aguardando missão...' },
         marketeiro:  { name: 'Marketeiro',  emoji: '📢', status: 'idle', progress: 0, task: 'Aguardando missão...' },
         seo:         { name: 'SEO',         emoji: '🔍', status: 'idle', progress: 0, task: 'Aguardando missão...' },
+        seguranca:   { name: 'Segurança',   emoji: '🛡️', status: 'idle', progress: 0, task: 'Aguardando missão...' },
     },
     monacoEditor: null,
 };
@@ -256,6 +257,7 @@ function initWebSocket() {
                 // Injeta código auto-corrigido pelo Visual Inspector no Editor e Preview
                 state.files['index.html'].content = data.html;
                 state.files['style.css'].content = data.css;
+                if (data.api_py) state.files['api.py'].content = data.api_py;
                 
                 if (state.monacoEditor) {
                     const currentLang = state.files[state.activeFile].lang;
